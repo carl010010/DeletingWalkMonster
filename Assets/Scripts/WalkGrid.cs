@@ -155,94 +155,120 @@ public class WalkGrid
         {
             List<Vector3> points = new List<Vector3>(8);
 
-            for (int a = 0; a < topLeft.pointCount; a++)
+            List<float> tLeft = new List<float>(topLeft.yHeights);
+            List<float> tRight = new List<float>(topRight.yHeights);
+            List<float> bRight = new List<float>(bottomRight.yHeights);
+            List<float> bLeft = new List<float>(bottomLeft.yHeights);
+
+            foreach (float p in tLeft)
             {
-                for (int b = 0; b < topRight.pointCount; b++)
+                points.Clear();
+
+                points.Add(topLeft.postition + Vector3.up * p);
+
+                foreach(float p1 in tRight)
                 {
-                    for (int c = 0; c < bottomRight.pointCount; c++)
+                    if(Mathf.Abs(p - p1) < 0.9f)
                     {
-                        for (int d = 0; d < bottomLeft.pointCount; d++)
-                        {
-                            points.Clear();
-
-                            points.Add(bottomLeft.postition + Vector3.up * bottomLeft.yHeights[d]);
-
-                            if (a < topLeft.yHeights.Length && Mathf.Abs(bottomLeft.yHeights[d] - topLeft.yHeights[a]) < 0.9f)
-                            {
-                                points.Add(topLeft.postition + Vector3.up * topLeft.yHeights[a]);
-                                    a++;
-                            }
-
-                            if (b < topRight.yHeights.Length && Mathf.Abs(bottomLeft.yHeights[d] - topRight.yHeights[b]) < 0.9f)
-                            {
-                                points.Add(topRight.postition + Vector3.up * topRight.yHeights[b]);
-                                b++;
-                            }
-
-                            if (c < bottomRight.yHeights.Length && Mathf.Abs(bottomLeft.yHeights[d] - bottomRight.yHeights[c]) < 0.9f)
-                            {
-                                points.Add(bottomRight.postition + Vector3.up * bottomRight.yHeights[c]);
-                                c++;
-                            }
-
-                            if(points.Count > 1)
-                            {
-                                points.Add(bottomLeft.postition + Vector3.up * bottomLeft.yHeights[d]);
-                            }
-
-                            walkPoints.Add(new WalkPointGroup(points.ToArray()));
-                        }
-
-                        points.Clear();
-
-                        if (c >= bottomRight.yHeights.Length)
-                            break;
-
-
-                        points.Add(bottomRight.postition + Vector3.up * bottomRight.yHeights[c]);
-
-
-                        if (a < topLeft.yHeights.Length && Mathf.Abs(bottomRight.yHeights[c] - topLeft.yHeights[a]) < 0.9f)
-                        {
-                            points.Add(topLeft.postition + Vector3.up * topLeft.yHeights[a]);
-                            a++;
-                        }
-
-                        if (b < topRight.yHeights.Length && Mathf.Abs(bottomRight.yHeights[c] - topRight.yHeights[b]) < 0.9f)
-                        {
-                            points.Add(topRight.postition + Vector3.up * topRight.yHeights[b]);
-                            b++;
-                        }
-
-
-                        if (points.Count > 1)
-                        {
-                            points.Add(bottomRight.postition + Vector3.up * bottomRight.yHeights[c]);
-                        }
-
-                        walkPoints.Add(new WalkPointGroup(points.ToArray()));
-                    }
-
-                    points.Clear();
-
-                    if (b >= topRight.yHeights.Length)
+                        points.Add(topRight.postition + Vector3.up * p1);
+                        tRight.Remove(p1);
                         break;
-
-                    points.Add(topRight.postition + Vector3.up * topRight.yHeights[b]);
-
-                    if (a < topLeft.yHeights.Length && Mathf.Abs(topRight.yHeights[b] - topLeft.yHeights[a]) < 0.9f)
-                    {
-                        points.Add(topLeft.postition + Vector3.up * topLeft.yHeights[a]);
-                        a++;
                     }
-
-                    if (points.Count > 1)
-                    {
-                        points.Add(topRight.postition + Vector3.up * topRight.yHeights[b]);
-                    }
-
-                    walkPoints.Add(new WalkPointGroup(points.ToArray()));
                 }
+
+                foreach (float p2 in bRight)
+                {
+                    if (Mathf.Abs(p - p2) < 0.9f)
+                    {
+                        points.Add(bottomRight.postition + Vector3.up * p2);
+                        bRight.Remove(p2);
+                        break;
+                    }
+                }
+
+                foreach (float p3 in bLeft)
+                {
+                    if (Mathf.Abs(p - p3) < 0.9f)
+                    {
+                        points.Add(bottomLeft.postition + Vector3.up * p3);
+                        bLeft.Remove(p3);
+                        break;
+                    }
+                }
+
+                if (points.Count > 1)
+                {
+                    points.Add(topLeft.postition + Vector3.up * p);
+                }
+
+                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+            }
+
+            foreach (float p in tRight)
+            {
+                points.Clear();
+
+                points.Add(topRight.postition + Vector3.up * p);
+
+                foreach (float p1 in bRight)
+                {
+                    if (Mathf.Abs(p - p1) < 0.9f)
+                    {
+                        points.Add(bottomRight.postition + Vector3.up * p1);
+                        bRight.Remove(p1);
+                        break;
+                    }
+                }
+
+                foreach (float p2 in bLeft)
+                {
+                    if (Mathf.Abs(p - p2) < 0.9f)
+                    {
+                        points.Add(bottomLeft.postition + Vector3.up * p2);
+                        bLeft.Remove(p2);
+                        break;
+                    }
+                }
+
+                if (points.Count > 1)
+                {
+                    points.Add(topRight.postition + Vector3.up * p);
+                }
+
+                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+            }
+
+            foreach (float p in bRight)
+            {
+                points.Clear();
+
+                points.Add(bottomRight.postition + Vector3.up * p);
+
+                foreach (float p1 in bLeft)
+                {
+                    if (Mathf.Abs(p - p1) < 0.9f)
+                    {
+                        points.Add(bottomLeft.postition + Vector3.up * p1);
+                        bLeft.Remove(p1);
+                        break;
+                    }
+                }
+
+                if (points.Count > 1)
+                {
+                    points.Add(bottomRight.postition + Vector3.up * p);
+                }
+
+                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+            }
+
+            foreach (float p in bLeft)
+            {
+                points.Clear();
+
+                points.Add(bottomLeft.postition + Vector3.up * p);
+
+                walkPoints.Add(new WalkPointGroup(points.ToArray()));
             }
         }
 

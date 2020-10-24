@@ -1071,8 +1071,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44a981bc3ec714bf6a3a4d85e638dcfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SqrSize: 1
-  lineCount: 2
+  SqrSize: 5
+  lineCount: 40
   playerHeight: 2
   drawRay: 0
   drawCross: 0
@@ -1084,7 +1084,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1410880160}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 19.9, y: 9.43, z: 9.06}
+  m_LocalPosition: {x: 1.2, y: 10.85, z: 4.66}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1269,10 +1269,10 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1956204726}
-  m_LocalRotation: {x: -0, y: -0.593894, z: -0, w: 0.8045433}
-  m_LocalPosition: {x: 0.605, y: 1.656, z: 5.2}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.605, y: 0.47, z: 5.2}
   m_LocalScale: {x: 3.6833017, y: 1.1347404, z: 0.22892633}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 8
-  m_LocalEulerAnglesHint: {x: 0, y: -72.868004, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
