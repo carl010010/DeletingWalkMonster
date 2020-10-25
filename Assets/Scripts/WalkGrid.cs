@@ -47,20 +47,25 @@ public class WalkGrid
                         RaycastHit hit = hits[h];
                         RaycastHit hit2;
 
-                        foreach (var c in blockerCollider)
+                        if (hit.collider.gameObject.layer == 8)
                         {
-                            if (IsPointInCollider(c, hit.point))
+                            blockerCollider.Add(hit.collider);
+                            valid = false;
+                        }
+                        else
+                        {
+
+                            foreach (var c in blockerCollider)
                             {
-                                valid = false;
-                                break;
+                                if (IsPointInCollider(c, hit.point))
+                                {
+                                    valid = false;
+                                    break;
+                                }
                             }
                         }
 
 
-                        if (hit.collider.gameObject.layer == 8)
-                        {
-                            blockerCollider.Add(hit.collider);
-                        }
                         
                         if (valid && (h != 0
                             && hit.point.y + playerHeight > hits[h - 1].point.y
