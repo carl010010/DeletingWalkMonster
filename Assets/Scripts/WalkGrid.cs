@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-[ExecuteAlways]
 public class WalkGrid
 {
     public bool drawRay = false;
     public bool drawCross = false;
 
     public int maxHeight = 255;
+
+    public float stepHeight = 0.9f;
 
     public CellGrid cellGrid;
 
@@ -24,7 +25,7 @@ public class WalkGrid
 
         Poll[,] polls = new Poll[sideCount, sideCount];
 
-        
+
         float spacing = (1f / (sideCount - 1)) * squareSize;
 
         for (int x = 0; x < sideCount; x++)
@@ -70,13 +71,13 @@ public class WalkGrid
                         }
 
 
-                        
+
                         if (valid && (h != 0
                             && hit.point.y + playerHeight > hits[h - 1].point.y
                             || Physics.Raycast(hit.point, Vector3.up, out hit2, playerHeight)))
-                                //TODO (Carl) can significantly reduce the amount of raycasts
-                                // if we assume hits[0] is the top most point
-                                // in the world
+                        //TODO (Carl) can significantly reduce the amount of raycasts
+                        // if we assume hits[0] is the top most point
+                        // in the world
                         {
                             valid = false;
                         }
@@ -96,7 +97,7 @@ public class WalkGrid
             }
         }
 
-        cellGrid = new CellGrid(polls);
+        cellGrid = new CellGrid(polls, spacing);
     }
 
     public void DisplayGrid()
@@ -104,9 +105,9 @@ public class WalkGrid
         Vector3 offset = new Vector3(0, 0.01f, 0);
 
 
-        foreach(WalkCell w in cellGrid.walkCells)
+        foreach (WalkCell w in cellGrid.walkCells)
         {
-            foreach (var walkPoint in w.walkPoints)
+            foreach (WalkCell.WalkPointGroup walkPoint in w.walkGroups)
             {
                 if (walkPoint.points.Length == 0)
                     continue;
@@ -120,6 +121,20 @@ public class WalkGrid
                         GL_Utils.DrawLine(walkPoint.points[i] + offset, walkPoint.points[i + 1] + offset, Color.white);
                     }
                 }
+
+                if (walkPoint.walkEdgePoints != null)
+                {
+                    for (int i = 0; i < walkPoint.walkEdgePoints.Length - 1; i++)
+                    {
+                        GL_Utils.DrawLine(walkPoint.walkEdgePoints[i] + offset, walkPoint.walkEdgePoints[i + 1] + offset, Color.red);
+                    }
+
+                    foreach(var walkEdgePoint in walkPoint.walkEdgePoints)
+                    {
+                        GL_Utils.DrawCrossVertical(walkEdgePoint, Color.red);
+                    }
+                }
+
             }
         }
     }
@@ -129,20 +144,23 @@ public class WalkGrid
     {
         public WalkCell[,] walkCells;
 
-        public CellGrid(Poll[,] map)
+        public CellGrid(Poll[,] map, float pollSpacing)
         {
             int gridLength = map.GetLength(0);
 
 
             walkCells = new WalkCell[gridLength - 1, gridLength - 1];
 
-            for(int x = 0; x < gridLength - 1; x++ )
+            for (int x = 0; x < gridLength - 1; x++)
             {
                 for (int y = 0; y < gridLength - 1; y++)
                 {
-                    walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y]);
+                    walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing);
                 }
             }
+
+            //errod
+            // foreach walkEdgePoints erods poll map
         }
     }
 
@@ -150,17 +168,18 @@ public class WalkGrid
 
     public class WalkCell
     {
-        public List<WalkPointGroup> walkPoints = new List<WalkPointGroup>();
+        public List<WalkPointGroup> walkGroups = new List<WalkPointGroup>();
 
-        public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft)
+        public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
         {
 
-            FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft);
-
+            FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft, pollSpacing);
+            //errod
+            //update FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft);
 
         }
 
-        void FillWalkPoints(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft)
+        void FillWalkPoints(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
         {
             List<Vector3> points = new List<Vector3>(8);
 
@@ -169,17 +188,24 @@ public class WalkGrid
             List<float> bRight = new List<float>(bottomRight.yHeights);
             List<float> bLeft = new List<float>(bottomLeft.yHeights);
 
+            short configuration = 0;
+
             foreach (float p in tLeft)
             {
                 points.Clear();
+                configuration = 0;
+
 
                 points.Add(topLeft.postition + Vector3.up * p);
+                configuration += 8;// 8 = top left
 
-                foreach(float p1 in tRight)
+
+                foreach (float p1 in tRight)
                 {
-                    if(Mathf.Abs(p - p1) < 0.9f)
+                    if (Mathf.Abs(p - p1) < 0.9f)
                     {
                         points.Add(topRight.postition + Vector3.up * p1);
+                        configuration += 4;// 4 = top right
                         tRight.Remove(p1);
                         break;
                     }
@@ -190,6 +216,7 @@ public class WalkGrid
                     if (Mathf.Abs(p - p2) < 0.9f)
                     {
                         points.Add(bottomRight.postition + Vector3.up * p2);
+                        configuration += 2;// 2 = bottom right
                         bRight.Remove(p2);
                         break;
                     }
@@ -200,6 +227,7 @@ public class WalkGrid
                     if (Mathf.Abs(p - p3) < 0.9f)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p3);
+                        configuration += 1;// 1 = bottom left
                         bLeft.Remove(p3);
                         break;
                     }
@@ -210,20 +238,23 @@ public class WalkGrid
                     points.Add(topLeft.postition + Vector3.up * p);
                 }
 
-                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
             }
 
             foreach (float p in tRight)
             {
                 points.Clear();
+                configuration = 0;
 
                 points.Add(topRight.postition + Vector3.up * p);
+                configuration += 4;// 4 = top right
 
                 foreach (float p1 in bRight)
                 {
                     if (Mathf.Abs(p - p1) < 0.9f)
                     {
                         points.Add(bottomRight.postition + Vector3.up * p1);
+                        configuration += 2;// 2 = bottom right
                         bRight.Remove(p1);
                         break;
                     }
@@ -234,6 +265,7 @@ public class WalkGrid
                     if (Mathf.Abs(p - p2) < 0.9f)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p2);
+                        configuration += 1;// 1 = bottom left
                         bLeft.Remove(p2);
                         break;
                     }
@@ -244,20 +276,23 @@ public class WalkGrid
                     points.Add(topRight.postition + Vector3.up * p);
                 }
 
-                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
             }
 
             foreach (float p in bRight)
             {
                 points.Clear();
+                configuration = 0;
 
                 points.Add(bottomRight.postition + Vector3.up * p);
+                configuration += 2;// 2 = bottom right
 
                 foreach (float p1 in bLeft)
                 {
                     if (Mathf.Abs(p - p1) < 0.9f)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p1);
+                        configuration += 1;// 1 = bottom left
                         bLeft.Remove(p1);
                         break;
                     }
@@ -268,30 +303,236 @@ public class WalkGrid
                     points.Add(bottomRight.postition + Vector3.up * p);
                 }
 
-                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
             }
 
             foreach (float p in bLeft)
             {
                 points.Clear();
+                configuration = 0;
 
                 points.Add(bottomLeft.postition + Vector3.up * p);
+                configuration += 1;// 1 = bottom left
 
-                walkPoints.Add(new WalkPointGroup(points.ToArray()));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
             }
         }
 
         public class WalkPointGroup
         {
             public Vector3[] points;
-            //public Tuple<int, int>[] walkEdges;
 
-            public WalkPointGroup(Vector3[] points)//, Tuple<int, int>[] walkEdges)
+            // 15 = all four points are insde the walkgroup
+            // 8 = top left
+            // 4 = top right
+            // 2 = bottom right
+            // 1 = bottom left
+            public short walkPointConfiguration;
+
+            public Vector3[] walkEdgePoints;
+
+            public WalkPointGroup(Vector3[] points, short walkPointConfiguration, float pollSpacing)
             {
                 this.points = points;
-                //this.walkEdges = walkEdges;
+                this.walkPointConfiguration = walkPointConfiguration;
+
+                walkEdgePoints = CreateWalkEdge(pollSpacing);
+            }
+
+
+            Vector3[] CreateWalkEdge(float pollSpacing)
+            {
+                Vector3[] ret = null;
+
+
+                switch (walkPointConfiguration)
+                {
+                    case 0:
+                        break;
+
+                    // 1 point :
+                    case 1:
+                    case 2:
+                    case 4:
+                    case 8:
+                        ret = FindWalkEdge1Point(walkPointConfiguration, pollSpacing);
+                        break;
+
+                    // 2 point :
+                    case 3:
+                        break;
+
+                    case 6:
+                        break;
+
+                    case 9:
+                        break;
+
+                    case 12:
+                        break;
+
+                    case 5:
+                        break;
+
+                    case 10:
+                        break;
+
+                    // 3 point :
+                    case 7:
+                        break;
+
+                    case 11:
+                        break;
+
+                    case 13:
+                        break;
+
+                    case 14:
+                        break;
+
+
+                    // 4 point :
+                    case 15:
+                        break;
+
+                    default:
+                        Debug.LogError("WalkPointGroup has a walkPointConfiguration that out of bounds: " + walkPointConfiguration);
+                        break;
+                }
+
+                return ret;
+            }
+
+            private Vector3[] FindWalkEdge1Point(int confg, float pollSpacing)
+            {
+                Vector3[] ret = new Vector3[3];
+
+                ret[0] = points[0];
+                ret[0].y += 0.9f;
+
+                ret[1] = points[0];
+                ret[1].y += 0.9f;
+
+                ret[2] = points[0];
+                ret[2].y += 0.9f;
+
+                pollSpacing /= 2;
+
+
+
+
+                switch (confg)
+                {
+                    case  1: //Bottom Left
+
+                        ret[0].z += pollSpacing;
+                        ret[1].x += pollSpacing;
+                        ret[2].z += pollSpacing;
+                        ret[2].x += pollSpacing;
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            pollSpacing /= 2;
+
+                            SetWalkEdgePointsFor1Point(ref ret, 1, 1, pollSpacing);
+                        }
+                        break;
+
+                    case 2: //Bottom Right
+
+                        ret[0].z += pollSpacing;
+                        ret[1].x -= pollSpacing;
+                        ret[2].z += pollSpacing;
+                        ret[2].x -= pollSpacing;
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            pollSpacing /= 2;
+
+                            SetWalkEdgePointsFor1Point(ref ret, 1, -1, pollSpacing);
+                        }
+                        break;
+
+                    case 4: //Top Right
+
+                        ret[0].z -= pollSpacing;
+                        ret[1].x -= pollSpacing;
+                        ret[2].z -= pollSpacing;
+                        ret[2].x -= pollSpacing;
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            pollSpacing /= 2;
+
+                            SetWalkEdgePointsFor1Point(ref ret, -1, -1, pollSpacing);
+                        }
+                        break;
+
+                    case 8: //Top Left
+
+                        ret[0].z -= pollSpacing;
+                        ret[1].x += pollSpacing;
+                        ret[2].z -= pollSpacing;
+                        ret[2].x += pollSpacing;
+
+                        for (int i = 0; i < 3; i++)
+                        {
+                            pollSpacing /= 2;
+
+                            SetWalkEdgePointsFor1Point(ref ret, -1, 1, pollSpacing);
+                        }
+                        break;
+                    default:
+                        Debug.LogError("WalkPointGroup has a walkPointConfiguration that out of bounds: " + confg);
+                        ret = null;
+                        break;
+                }
+
+                ret[0].y = points[0].y;
+                ret[1].y = points[0].y;
+                ret[2].y = points[0].y;
+
+
+                return ret;
+            }
+
+            //Helper function for setting WalkEdgePoints based off of only one point
+            void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int vertical, int horizontal, float pollSpacing)
+            {
+                //Vertical
+                if (Physics.Raycast(ret[0], Vector3.down, 1.8f))
+                {
+                    ret[0].z += pollSpacing * vertical;
+                }
+                else
+                {
+                    ret[0].z -= pollSpacing * vertical;
+                }
+
+                //Horizontal
+                if (Physics.Raycast(ret[1], Vector3.down, 1.8f))
+                {
+                    ret[1].x += pollSpacing * horizontal;
+                }
+                else
+                {
+                    ret[1].x -= pollSpacing * horizontal;
+                }
+
+                //45 degre
+                if (Physics.Raycast(ret[2], Vector3.down, 1.8f))
+                {
+                    ret[2].z += pollSpacing * vertical;
+                    ret[2].x += pollSpacing * horizontal;
+                }
+                else
+                {
+                    ret[2].z -= pollSpacing * vertical;
+                    ret[2].x -= pollSpacing * horizontal;
+                }
             }
         }
+
     }
 
     public class Poll
