@@ -10,12 +10,16 @@ public class WalkGrid
     public bool drawRay = false;
     public bool drawCross = false;
 
+    public int maxHeight = 255;
+
     public CellGrid cellGrid;
 
     public void GenerateWalkGrid(float squareSize, int sideCount, float playerHeight, Vector3 pos)
     {
         if (squareSize <= 0.01 || sideCount < 1)
             return;
+
+        pos.y = maxHeight;
 
 
         Poll[,] polls = new Poll[sideCount, sideCount];
