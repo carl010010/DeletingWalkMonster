@@ -436,7 +436,7 @@ public class WalkGrid
                     ret[2] = points[0];
                     ret[2].y += 0.9f;
 
-                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 3);
+                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 1, 3);
 
                     ret[0].y = points[0].y;
                     ret[1].y = points[0].y;
@@ -447,7 +447,7 @@ public class WalkGrid
             }
 
             //Helper function for setting WalkEdgePoints based off of only one point
-            void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing, int loopCount = 3)
+            void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing, float playerHeight,  int loopCount = 3)
             {
                 pollSpacing /= 2;
 
@@ -458,8 +458,10 @@ public class WalkGrid
 
                 for (int i = 0; i < loopCount; i++)
                 {
+                    pollSpacing /= 2;
+
                     //Vertical
-                    if (Physics.Raycast(ret[0], Vector3.down, 1.8f))
+                    if (Physics.Raycast(ret[0] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
                     {
                         ret[0].z += pollSpacing * verticalModifier;
                     }
@@ -469,7 +471,7 @@ public class WalkGrid
                     }
 
                     //45 degre
-                    if (Physics.Raycast(ret[1], Vector3.down, 1.8f))
+                    if (Physics.Raycast(ret[1] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
                     {
                         ret[1].z += pollSpacing * verticalModifier;
                         ret[1].x += pollSpacing * horizontalModifier;
@@ -481,7 +483,7 @@ public class WalkGrid
                     }
 
                     //Horizontal
-                    if (Physics.Raycast(ret[2], Vector3.down, 1.8f))
+                    if (Physics.Raycast(ret[2] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
                     {
                         ret[2].x += pollSpacing * horizontalModifier;
                     }
@@ -489,17 +491,18 @@ public class WalkGrid
                     {
                         ret[2].x -= pollSpacing * horizontalModifier;
                     }
-
-                    pollSpacing /= 2;
                 }
             }
 
             private Vector3[] FindWalkEdge3Point(int confg, float pollSpacing)
             {
-                Vector3[] ret = null;
+                Vector3[] ret = new Vector3[3]; ;
 
                 int p0H = 0, p0V = 0, p1H = 0, p1V = 0, p2H = 0, p2V = 0;
 
+                ret[0] = points[0];
+                ret[1] = points[1];
+                ret[2] = points[2];
 
                 switch (confg)
                 {
@@ -510,14 +513,24 @@ public class WalkGrid
                         p2V = 1;
                         break;
                     case 11: // Top Right Missing
+
+                        ret[0] = points[0];
+                        ret[1] = points[2];
+                        ret[2] = points[1];
+
                         p0H = 1;
                         p1H = 1;
                         p1V = 1;
                         p2V = 1;
                         break;
                     case 13: // Bottom Right Missing
+
+                        ret[0] = points[1];
+                        ret[1] = points[0];
+                        ret[2] = points[2];
+
                         p0V = -1;
-                        p0H = 1;
+                        p1H = 1;
                         p1V = -1;
                         p2H = 1;
                         break;
@@ -529,25 +542,22 @@ public class WalkGrid
                         break;
                     default:
                         Debug.LogError("WalkPointGroup with one point has a walkPointConfiguration that out of bounds: " + confg);
+                        ret = null;
                         break;
                 }
 
 
                 if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0 || p2H != 0 || p2V != 0)
                 {
-                    ret = new Vector3[3];
 
-                    ret[0] = points[0];
-                    ret[1] = points[1];
-                    ret[2] = points[2];
-                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, 3);
+                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, 1 , 3);
                 }
 
                 return ret;
             }
 
             //Helper function for setting WalkEdgePoints based off of only one point
-            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, int loopCount = 3)
+            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, float playerHeight, int loopCount = 3)
             {
                 pollSpacing /= 2;
 
@@ -562,10 +572,9 @@ public class WalkGrid
 
                 for (int i = 0; i < loopCount; i++)
                 {
-
-
+                    pollSpacing /= 2;
                     //p0
-                    if (Physics.Raycast(ret[0], Vector3.down, 1.8f))
+                    if (Physics.Raycast(ret[0] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
                     {
                         ret[0].x += pollSpacing * p0H;
                         ret[0].z += pollSpacing * p0V;
@@ -577,7 +586,7 @@ public class WalkGrid
                     }
 
                     //p1
-                    if (Physics.Raycast(ret[1], Vector3.down, 1.8f))
+                    if (Physics.Raycast(ret[1] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
                     {
                         ret[1].x += pollSpacing * p1H;
                         ret[1].z += pollSpacing * p1V;
@@ -589,7 +598,7 @@ public class WalkGrid
                     }
 
                     //p2
-                    if (Physics.Raycast(ret[2], Vector3.down, 1.8f))
+                    if (Physics.Raycast(ret[2] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
                     {
                         ret[2].x += pollSpacing * p2H;
                         ret[2].z += pollSpacing * p2V;
@@ -600,7 +609,7 @@ public class WalkGrid
                         ret[2].z -= pollSpacing * p2V;
                     }
 
-                    pollSpacing /= 2;
+                    
                 }
             }
         }
