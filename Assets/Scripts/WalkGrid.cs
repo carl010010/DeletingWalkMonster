@@ -160,6 +160,7 @@ public class WalkGrid
 
     public class WalkCell
     {
+        private const float StepHeight = 1;
         public List<WalkPointGroup> walkGroups = new List<WalkPointGroup>();
 
         public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
@@ -194,7 +195,7 @@ public class WalkGrid
 
                 foreach (float p1 in tRight)
                 {
-                    if (Mathf.Abs(p - p1) < 0.9f)
+                    if (Mathf.Abs(p - p1) < StepHeight)
                     {
                         points.Add(topRight.postition + Vector3.up * p1);
                         configuration += 4;// 4 = top right
@@ -205,7 +206,7 @@ public class WalkGrid
 
                 foreach (float p2 in bRight)
                 {
-                    if (Mathf.Abs(p - p2) < 0.9f)
+                    if (Mathf.Abs(p - p2) < StepHeight)
                     {
                         points.Add(bottomRight.postition + Vector3.up * p2);
                         configuration += 2;// 2 = bottom right
@@ -216,7 +217,7 @@ public class WalkGrid
 
                 foreach (float p3 in bLeft)
                 {
-                    if (Mathf.Abs(p - p3) < 0.9f)
+                    if (Mathf.Abs(p - p3) < StepHeight)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p3);
                         configuration += 1;// 1 = bottom left
@@ -243,7 +244,7 @@ public class WalkGrid
 
                 foreach (float p1 in bRight)
                 {
-                    if (Mathf.Abs(p - p1) < 0.9f)
+                    if (Mathf.Abs(p - p1) < StepHeight)
                     {
                         points.Add(bottomRight.postition + Vector3.up * p1);
                         configuration += 2;// 2 = bottom right
@@ -254,7 +255,7 @@ public class WalkGrid
 
                 foreach (float p2 in bLeft)
                 {
-                    if (Mathf.Abs(p - p2) < 0.9f)
+                    if (Mathf.Abs(p - p2) < StepHeight)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p2);
                         configuration += 1;// 1 = bottom left
@@ -281,7 +282,7 @@ public class WalkGrid
 
                 foreach (float p1 in bLeft)
                 {
-                    if (Mathf.Abs(p - p1) < 0.9f)
+                    if (Mathf.Abs(p - p1) < StepHeight)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p1);
                         configuration += 1;// 1 = bottom left
@@ -353,21 +354,12 @@ public class WalkGrid
 
                     // 2 point :
                     case 3:
-                        break;
-
-                    case 6:
-                        break;
-
-                    case 9:
-                        break;
-
-                    case 12:
-                        break;
-
                     case 5:
-                        break;
-
+                    case 6:
+                    case 9:
                     case 10:
+                    case 12:
+                        ret = FindWalkEdge2Point(walkPointConfiguration, pollSpacing);
                         break;
 
                     // 3 point :
@@ -428,13 +420,13 @@ public class WalkGrid
                     ret = new Vector3[3];
 
                     ret[0] = points[0];
-                    ret[0].y += 0.9f;
+                    ret[0].y += StepHeight;
 
                     ret[1] = points[0];
-                    ret[1].y += 0.9f;
+                    ret[1].y += StepHeight;
 
                     ret[2] = points[0];
-                    ret[2].y += 0.9f;
+                    ret[2].y += StepHeight;
 
                     SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 1, 3);
 
@@ -490,6 +482,98 @@ public class WalkGrid
                     else
                     {
                         ret[2].x -= pollSpacing * horizontalModifier;
+                    }
+                }
+            }
+
+            private Vector3[] FindWalkEdge2Point(int confg, float pollSpacing)
+            {
+                Vector3[] ret = new Vector3[2];
+
+                int p0H = 0, p0V = 0, p1H = 0, p1V = 0;
+
+                ret[0] = points[0];
+                ret[1] = points[1];
+
+                switch (confg)
+                {
+                    case 3: //Bottom Left and Bottom Right
+                        p0V = 1;
+                        p1V = 1;
+                        break;
+                    case 5: // Bottom Left and Top Right
+                        //This case is very unlikely
+                        //So just add points[0] and points[1] to the list of walkedgepoints
+                        //We add them to the list of walkEdges so that they still contribute to the eroding process
+                        break;
+                    case 6: // Bottom Right and Top Right
+                        p0H = -1;
+                        p1H = -1;
+                        break;
+                    case 9: // Bottom Left and Top Left
+                        p0H = 1;
+                        p1H = 1;
+                        break;
+                    case 10: //Top Left and Bottom Right
+                        //This case is very unlikely
+                        //So just add points[0] and points[1] to the list of walkedgepoints
+                        //We add them to the list of walkEdges so that they still contribute to the eroding process
+                        break;
+                    case 12: //Top Left and Top Right
+                        p0V = -1;
+                        p1V = -1;
+                        break;
+                    default:
+                        Debug.LogError("WalkPointGroup with one point has a walkPointConfiguration that out of bounds: " + confg);
+                        ret = null;
+                        break;
+                }
+
+
+                if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0)
+                {
+                    SetWalkEdgePointsFor2Point(ref ret, p0H, p0V, p1H, p1V, pollSpacing, 1, 3);
+                }
+
+                return ret;
+            }
+
+            //Helper function for setting WalkEdgePoints based off of two points
+            void SetWalkEdgePointsFor2Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, float pollSpacing, float playerHeight, int loopCount = 3)
+            {
+                pollSpacing /= 2;
+
+                ret[0].x += pollSpacing * p0H;
+                ret[0].z += pollSpacing * p0V;
+
+                ret[1].x += pollSpacing * p1H;
+                ret[1].z += pollSpacing * p1V;
+
+                for (int i = 0; i < loopCount; i++)
+                {
+                    pollSpacing /= 2;
+                    //p0
+                    if (Physics.Raycast(ret[0] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    {
+                        ret[0].x += pollSpacing * p0H;
+                        ret[0].z += pollSpacing * p0V;
+                    }
+                    else
+                    {
+                        ret[0].x -= pollSpacing * p0H;
+                        ret[0].z -= pollSpacing * p0V;
+                    }
+
+                    //p1
+                    if (Physics.Raycast(ret[1] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    {
+                        ret[1].x += pollSpacing * p1H;
+                        ret[1].z += pollSpacing * p1V;
+                    }
+                    else
+                    {
+                        ret[1].x -= pollSpacing * p1H;
+                        ret[1].z -= pollSpacing * p1V;
                     }
                 }
             }
@@ -556,7 +640,7 @@ public class WalkGrid
                 return ret;
             }
 
-            //Helper function for setting WalkEdgePoints based off of only one point
+            //Helper function for setting WalkEdgePoints based off of three points
             void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, float playerHeight, int loopCount = 3)
             {
                 pollSpacing /= 2;
@@ -608,8 +692,6 @@ public class WalkGrid
                         ret[2].x -= pollSpacing * p2H;
                         ret[2].z -= pollSpacing * p2V;
                     }
-
-                    
                 }
             }
         }
