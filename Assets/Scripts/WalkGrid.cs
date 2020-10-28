@@ -115,14 +115,9 @@ public class WalkGrid
                 if (walkPoint.points.Length == 0)
                     continue;
 
-                if (walkPoint.points.Length == 1)
-                    GL_Utils.DrawCrossVertical(walkPoint.points[0] + offset, Color.white);
-                else
+                for (int i = 0; i < walkPoint.points.Length - 1; i++)
                 {
-                    for (int i = 0; i < walkPoint.points.Length - 1; i++)
-                    {
-                        GL_Utils.DrawLine(walkPoint.points[i] + offset, walkPoint.points[i + 1] + offset, Color.white);
-                    }
+                    GL_Utils.DrawLine(walkPoint.points[i] + offset, walkPoint.points[i + 1] + offset, Color.white);
                 }
 
                 if (walkPoint.walkEdgePoints != null)
@@ -131,14 +126,7 @@ public class WalkGrid
                     {
                         GL_Utils.DrawLine(walkPoint.walkEdgePoints[i] + offset, walkPoint.walkEdgePoints[i + 1] + offset, Color.red);
                     }
-
-                    for (int i = 0; i < walkPoint.walkEdgePoints.Length; i++)
-                    {
-                        Vector3 walkEdgePoint = walkPoint.walkEdgePoints[i];
-                        GL_Utils.DrawCrossVertical(walkEdgePoint + offset, Color.red, 0.05f);
-                    }
                 }
-
             }
         }
     }
@@ -410,25 +398,21 @@ public class WalkGrid
                 switch (confg)
                 {
                     case  1: //Bottom Left
-                        Debug.Log("Bottom Left");
                         verticalModifier = 1;
                         horizontalModifier = 1;
                         break;
 
                     case 2: //Bottom Right
-                        Debug.Log("Bottom Right");
                         verticalModifier = 1;
                         horizontalModifier = -1;
                         break;
 
                     case 4: //Top Right
-                        Debug.Log("Top Right");
                         verticalModifier = -1;
                         horizontalModifier = -1;
                         break;
 
                     case 8: //Top Left
-                        Debug.Log("Top Left");
                         verticalModifier = -1;
                         horizontalModifier = 1;
                         break;
@@ -452,9 +436,8 @@ public class WalkGrid
                     ret[2] = points[0];
                     ret[2].y += 0.9f;
 
-                    pollSpacing /= 2;
+                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 3);
 
-                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 2);
                     ret[0].y = points[0].y;
                     ret[1].y = points[0].y;
                     ret[2].y = points[0].y;
@@ -466,6 +449,8 @@ public class WalkGrid
             //Helper function for setting WalkEdgePoints based off of only one point
             void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing, int loopCount = 3)
             {
+                pollSpacing /= 2;
+
                 ret[0].z += pollSpacing * verticalModifier;
                 ret[1].z += pollSpacing * verticalModifier;
                 ret[1].x += pollSpacing * horizontalModifier;
@@ -473,8 +458,6 @@ public class WalkGrid
 
                 for (int i = 0; i < loopCount; i++)
                 {
-                    
-
                     //Vertical
                     if (Physics.Raycast(ret[0], Vector3.down, 1.8f))
                     {
@@ -513,94 +496,112 @@ public class WalkGrid
 
             private Vector3[] FindWalkEdge3Point(int confg, float pollSpacing)
             {
-                int verticalModifier = 0, horizontalModifier = 0;
+                Vector3[] ret = null;
 
-                Vector3[] ret = new Vector3[3];
-
-
-
-                //switch (confg)
-                //{
-                //case 7:  // Top Left Missing
-                //case 11: // Top Right Missing
-                //case 13: // Bottom Right Missing
-                //case 14: // Bottom Left Missing
-                //    default:
-                //        Debug.LogError("WalkPointGroup with one point has a walkPointConfiguration that out of bounds: " + confg);
-                //        break;
-                //}
+                int p0H = 0, p0V = 0, p1H = 0, p1V = 0, p2H = 0, p2V = 0;
 
 
-                if (verticalModifier != 0 && horizontalModifier != 0)
+                switch (confg)
+                {
+                    case 7:  // Top Left Missing
+                        p0H = -1;
+                        p1H = -1;
+                        p1V = 1;
+                        p2V = 1;
+                        break;
+                    case 11: // Top Right Missing
+                        p0H = 1;
+                        p1H = 1;
+                        p1V = 1;
+                        p2V = 1;
+                        break;
+                    case 13: // Bottom Right Missing
+                        p0V = -1;
+                        p0H = 1;
+                        p1V = -1;
+                        p2H = 1;
+                        break;
+                    case 14: // Bottom Left Missing
+                        p0V = -1;
+                        p1H = -1;
+                        p1V = -1;
+                        p2H = -1;
+                        break;
+                    default:
+                        Debug.LogError("WalkPointGroup with one point has a walkPointConfiguration that out of bounds: " + confg);
+                        break;
+                }
+
+
+                if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0 || p2H != 0 || p2V != 0)
                 {
                     ret = new Vector3[3];
 
                     ret[0] = points[0];
-                    ret[0].y += 0.9f;
-
-                    ret[1] = points[0];
-                    ret[1].y += 0.9f;
-
-                    ret[2] = points[0];
-                    ret[2].y += 0.9f;
-
-                    pollSpacing /= 2;
-
-                    SetWalkEdgePointsFor3Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 2);
-                    ret[0].y = points[0].y;
-                    ret[1].y = points[0].y;
-                    ret[2].y = points[0].y;
+                    ret[1] = points[1];
+                    ret[2] = points[2];
+                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, 3);
                 }
 
                 return ret;
             }
 
             //Helper function for setting WalkEdgePoints based off of only one point
-            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing, int loopCount = 3)
+            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, int loopCount = 3)
             {
-                //ret[0].z += pollSpacing * verticalModifier;
-                //ret[1].z += pollSpacing * verticalModifier;
-                //ret[1].x += pollSpacing * horizontalModifier;
-                //ret[2].x += pollSpacing * horizontalModifier;
+                pollSpacing /= 2;
 
-                //for (int i = 0; i < loopCount; i++)
-                //{
+                ret[0].x += pollSpacing * p0H;
+                ret[0].z += pollSpacing * p0V;
+
+                ret[1].x += pollSpacing * p1H;
+                ret[1].z += pollSpacing * p1V;
+
+                ret[2].x += pollSpacing * p2H;
+                ret[2].z += pollSpacing * p2V;
+
+                for (int i = 0; i < loopCount; i++)
+                {
 
 
-                //    //Vertical
-                //    if (Physics.Raycast(ret[0], Vector3.down, 1.8f))
-                //    {
-                //        ret[0].z += pollSpacing * verticalModifier;
-                //    }
-                //    else
-                //    {
-                //        ret[0].z -= pollSpacing * verticalModifier;
-                //    }
+                    //p0
+                    if (Physics.Raycast(ret[0], Vector3.down, 1.8f))
+                    {
+                        ret[0].x += pollSpacing * p0H;
+                        ret[0].z += pollSpacing * p0V;
+                    }
+                    else
+                    {
+                        ret[0].x -= pollSpacing * p0H;
+                        ret[0].z -= pollSpacing * p0V;
+                    }
 
-                //    //45 degre
-                //    if (Physics.Raycast(ret[1], Vector3.down, 1.8f))
-                //    {
-                //        ret[1].z += pollSpacing * verticalModifier;
-                //        ret[1].x += pollSpacing * horizontalModifier;
-                //    }
-                //    else
-                //    {
-                //        ret[1].z -= pollSpacing * verticalModifier;
-                //        ret[1].x -= pollSpacing * horizontalModifier;
-                //    }
+                    //p1
+                    if (Physics.Raycast(ret[1], Vector3.down, 1.8f))
+                    {
+                        ret[1].x += pollSpacing * p1H;
+                        ret[1].z += pollSpacing * p1V;
+                    }
+                    else
+                    {
+                        ret[1].x -= pollSpacing * p1H;
+                        ret[1].z -= pollSpacing * p1V;
+                    }
 
-                //    //Horizontal
-                //    if (Physics.Raycast(ret[2], Vector3.down, 1.8f))
-                //    {
-                //        ret[2].x += pollSpacing * horizontalModifier;
-                //    }
-                //    else
-                //    {
-                //        ret[2].x -= pollSpacing * horizontalModifier;
-                //    }
+                    //p2
+                    if (Physics.Raycast(ret[2], Vector3.down, 1.8f))
+                    {
+                        ret[2].x += pollSpacing * p2H;
+                        ret[2].z += pollSpacing * p2V;
+                    }
+                    else
+                    {
+                        ret[2].x -= pollSpacing * p2H;
+                        ret[2].z -= pollSpacing * p2V;
+                    }
 
-                //    pollSpacing /= 2;
-                //}
+                    pollSpacing /= 2;
+                }
             }
         }
     }
