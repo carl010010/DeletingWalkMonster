@@ -170,7 +170,8 @@ public class WalkGrid
                                 int j = Mathf.Max(0, y - offset);
                                 for (; j < gridLength && j < y + offset + 1; j++)
                                 {
-                                    culledTestPoints[i, j] = true;
+                                    if(map[i, j].pointCount != 0)
+                                        culledTestPoints[i, j] = true;
                                 }
                             }
                             GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
