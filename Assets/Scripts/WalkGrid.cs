@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +18,7 @@ public class WalkGrid
     Color[] colors = { Color.cyan, Color.magenta, Color.green };
 
 
-    public void GenerateWalkGrid(float squareSize, int sideCount, float playerHeight, Vector3 pos)
+    public void GenerateWalkGrid(float squareSize, int sideCount, float playerHeight, float playerRadius, Vector3 pos)
     {
         if (squareSize <= 0.01 || sideCount < 1)
             return;
@@ -94,7 +94,7 @@ public class WalkGrid
             }
         }
 
-        cellGrid = new CellGrid(polls, spacing);
+        cellGrid = new CellGrid(polls, spacing, playerRadius);
     }
 
     public void DisplayGrid()
@@ -130,7 +130,7 @@ public class WalkGrid
     {
         public WalkCell[,] walkCells;
 
-        public CellGrid(Poll[,] map, float pollSpacing)
+        public CellGrid(Poll[,] map, float pollSpacing, float playerRadius)
         {
             int gridLength = map.GetLength(0);
 
@@ -145,8 +145,51 @@ public class WalkGrid
                 }
             }
 
+
+            bool[,] culledTestPoints = new bool[gridLength, gridLength];
+
             //errod
             // foreach walkEdgePoints erods poll map
+            for (int x = 0; x < gridLength - 1; x++)
+            {
+                for (int y = 0; y < gridLength - 1; y++)
+                {
+                    foreach (var wG in walkCells[x, y].walkGroups)
+                    {
+                        if (wG == null || wG.walkEdgePoints == null)
+                            continue;
+
+                        foreach (var wE in wG.walkEdgePoints)
+                        {
+                            int count = Mathf.CeilToInt(playerRadius * 2 / pollSpacing);
+                            int offset = Mathf.CeilToInt(count / 2f);
+
+                            int i = Mathf.Max(0, x - offset);
+                            for (; i < gridLength && i < x + offset + 1; i++)
+                            {
+                                int j = Mathf.Max(0, y - offset);
+                                for (; j < gridLength && j < y + offset + 1; j++)
+                                {
+                                    culledTestPoints[i, j] = true;
+                                }
+                            }
+                            GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
+                        }
+                    }
+                }
+            }
+
+            for (int x = 0; x < gridLength; x++)
+            {
+                for (int y = 0; y < gridLength; y++)
+                {
+                    if(culledTestPoints[x,y] == true)
+                    {
+                        GL_Utils.DrawCrossVertical(map[x, y].postition, Color.cyan);
+                    }
+
+                }
+            }
         }
     }
 

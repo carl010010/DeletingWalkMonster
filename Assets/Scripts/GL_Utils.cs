@@ -59,4 +59,29 @@ public static class GL_Utils
         GL.Color(eColor);
         GL.Vertex(end);
     }
+
+    public static void DrawCircle(Vector3 center, float radius, Vector3 normal, Color color)
+    {
+        GL.Color(color);
+
+        Vector3 ci;
+
+        normal = normal.normalized;
+        Vector3 forward = normal == Vector3.up ?
+            Vector3.ProjectOnPlane(Vector3.forward, normal).normalized :
+            Vector3.ProjectOnPlane(Vector3.up, normal);
+        Vector3 right = Vector3.Cross(normal, forward);
+
+        for (float theta = 0.0f; theta < (2 * Mathf.PI); theta += 0.4f)
+        {
+            ci = center + forward * Mathf.Cos(theta) * radius + right * Mathf.Sin(theta) * radius;
+            GL.Vertex(ci);
+
+            if (theta != 0)
+                GL.Vertex(ci);
+        }
+
+        ci = center + forward * Mathf.Cos(0) * radius + right * Mathf.Sin(0) * radius;
+        GL.Vertex(ci);
+    }
 }

@@ -60,7 +60,7 @@ public class RaycastGrid : MonoBehaviour
 
         walkGrid.drawRay = drawRay;
         walkGrid.drawCross = drawCross;
-        walkGrid.GenerateWalkGrid(SqrSize, lineCount, playerHeight, transform.position);
+        walkGrid.GenerateWalkGrid(SqrSize, lineCount, playerHeight, 0.5f, transform.position);
 
         walkGrid.DisplayGrid();
 
