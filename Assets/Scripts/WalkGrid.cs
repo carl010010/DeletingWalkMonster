@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -73,14 +73,8 @@ public class WalkGrid
                             }
                         }
 
-
-
-                        if (valid && (h != 0
-                            && hit.point.y + playerHeight > hits[h - 1].point.y
-                            || Physics.Raycast(hit.point, Vector3.up, out hit2, playerHeight)))
-                        //TODO (Carl) can significantly reduce the amount of raycasts
-                        // if we assume hits[0] is the top most point
-                        // in the world
+                        if (valid && h != 0
+                            && (hit.point.y + playerHeight > hits[h - 1].point.y || Physics.Raycast(hit.point, Vector3.up, out hit2, playerHeight)))
                         {
                             valid = false;
                         }
