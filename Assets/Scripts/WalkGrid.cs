@@ -90,7 +90,7 @@ public class WalkGrid
                     if (drawRay)
                         GL_Utils.DrawLine(point, hits[hits.Length - 1].point, Color.green);
                 }
-                polls[x, y] = new Poll(new Vector3(point.x, 0, point.z), validPoints.ToArray());
+                polls[x, y] = new Poll(new Vector3(point.x, 0, point.z), validPoints);
             }
         }
 
@@ -170,25 +170,55 @@ public class WalkGrid
                                 int j = Mathf.Max(0, y - offset);
                                 for (; j < gridLength && j < y + offset + 1; j++)
                                 {
-                                    if(map[i, j].pointCount != 0)
+                                    Vector2 mapPos = new Vector2(map[i, j].postition.x, map[i, j].postition.z);
+                                    Vector2 walkPos = new Vector2(wE.x, wE.z);
+
+                                    if (map[i, j].pointCount != 0 && (mapPos - walkPos).sqrMagnitude < playerRadius * playerRadius)
+                                    {
                                         culledTestPoints[i, j] = true;
+                                        for (int a = map[i, j].yHeights.Count - 1; a >= 0; a--)
+                                        {
+                                            float p = map[i, j].yHeights[a];
+
+                                            if(Mathf.Abs(p - wE.y) < 0.5)
+                                            {
+                                                //Debug.Log("Removing");
+                                                map[i, j].yHeights.Remove(p);
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
+                            //GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
                         }
                     }
                 }
             }
 
-            for (int x = 0; x < gridLength; x++)
-            {
-                for (int y = 0; y < gridLength; y++)
-                {
-                    if(culledTestPoints[x,y] == true)
-                    {
-                        GL_Utils.DrawCrossVertical(map[x, y].postition, Color.cyan);
-                    }
+            //for (int x = 0; x < gridLength; x++)
+            //{
+            //    for (int y = 0; y < gridLength; y++)
+            //    {
+            //        if (culledTestPoints[x, y] == true)
+            //        {
+            //            GL_Utils.DrawCrossVertical(map[x, y].postition, Color.cyan);
+            //        }
 
+            //    }
+            //}
+
+            for (int x = 0; x < gridLength - 1; x++)
+            {
+                for (int y = 0; y < gridLength - 1; y++)
+                {
+                    //TODO Is this optimization helpfull?
+                    if (culledTestPoints[x, y] == true ||
+                        culledTestPoints[x + 1, y] == true||
+                        culledTestPoints[x, y + 1] == true ||
+                        culledTestPoints[x + 1, y + 1] == true)
+                    {
+                        walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing);
+                    }
                 }
             }
         }
@@ -738,14 +768,14 @@ public class WalkGrid
     public class Poll
     {
         public Vector3 postition;
-        public float[] yHeights; //0 is the top most Y value while n is the lowest Y value
+        public List<float> yHeights; //0 is the top most Y value while n is the lowest Y value
         public short pointCount;
 
-        public Poll(Vector3 _pos, float[] _yheights)
+        public Poll(Vector3 _pos, List<float> _yheights)
         {
             postition = _pos;
             yHeights = _yheights;
-            pointCount = (short)yHeights.Length;
+            pointCount = (short)yHeights.Count;
         }
     }
 
