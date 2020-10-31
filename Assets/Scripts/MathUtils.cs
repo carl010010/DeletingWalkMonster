@@ -18,4 +18,34 @@ public class MathUtils
 		}
 		return hits;
     }
+
+
+	public struct Cylinder
+    {
+		public Vector3 pos;
+		public float stepHeight;
+		public float raduis;
+
+        public Cylinder(Vector3 pos, float stepHeight, float raduis)
+        {
+            this.pos = pos;
+            this.stepHeight = stepHeight;
+            this.raduis = raduis;
+        }
+
+		public bool ContrainsPoint(Vector3 point)
+        {
+			Vector2 pos2d = new Vector2(pos.x, pos.z);
+			Vector2 point2d = new Vector2(point.x, point.z);
+
+			if (point.y < pos.y - stepHeight || point.y > pos.y + stepHeight ||
+				(pos2d - point2d).sqrMagnitude > raduis * raduis)
+            {
+				return false;
+            }
+
+
+			return true;
+        }
+    }
 }

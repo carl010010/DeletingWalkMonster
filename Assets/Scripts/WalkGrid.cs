@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using UnityEngine;
+using static MathUtils;
 
 public class WalkGrid
 {
@@ -147,8 +148,9 @@ public class WalkGrid
             }
 
             bool[,] culledTestPoints;
+            List<Cylinder> cylinders;
 
-            Erode(ref map, out culledTestPoints, pollSpacing, playerRadius, gridLength);
+            Erode(ref map, out culledTestPoints, out cylinders, pollSpacing, gridLength, playerRadius, 1);
 
             for (int x = 0; x < gridLength - 1; x++)
             {
@@ -160,7 +162,7 @@ public class WalkGrid
                         culledTestPoints[x, y + 1] == true ||
                         culledTestPoints[x + 1, y + 1] == true)
                     {
-                        walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing);
+                        walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing, cylinders);
                     }
                 }
             }
@@ -175,9 +177,10 @@ public class WalkGrid
             //}
         }
 
-        private void Erode(ref Poll[,] map, out bool[,] culledTestPoints, float pollSpacing, float playerRadius, int gridLength)
+        private void Erode(ref Poll[,] map, out bool[,] culledTestPoints, out List<Cylinder> cylinders, float pollSpacing, int gridLength, float playerRadius, float playerStepHeight)
         {
             culledTestPoints = new bool[gridLength, gridLength];
+            cylinders = new List<Cylinder>();
 
             //errod
             // foreach walkEdgePoints erods poll map
@@ -213,18 +216,22 @@ public class WalkGrid
 
                                             if (Mathf.Abs(p - wE.y) < 0.5)
                                             {
-                                                //Debug.Log("Removing");
                                                 map[i, j].yHeights.Remove(p);
                                             }
                                         }
                                     }
                                 }
                             }
+                            cylinders.Add(new Cylinder(wE - Vector3.up * playerStepHeight, playerStepHeight, playerRadius));
                             //GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
                         }
                     }
                 }
             }
+
+            //We only need distinct cylinders
+            cylinders = cylinders.GroupBy(c => c.pos).Select(c => c.First()).ToList();
+
 
             //for (int x = 0; x < gridLength; x++)
             //{
@@ -247,13 +254,13 @@ public class WalkGrid
         private const float stepHeight = 1;
         public List<WalkPointGroup> walkGroups = new List<WalkPointGroup>();
 
-        public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
+        public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing, List<Cylinder> cylinders = null)
         {
 
-            FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft, pollSpacing);
+            FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft, pollSpacing, cylinders);
         }
 
-        void FillWalkPoints(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
+        void FillWalkPoints(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing, List<Cylinder> cylinders)
         {
             List<Vector3> points = new List<Vector3>(8);
 
@@ -312,7 +319,7 @@ public class WalkGrid
                     points.Add(topLeft.postition + Vector3.up * p);
                 }
 
-                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing, cylinders));
             }
 
             foreach (float p in tRight)
@@ -350,7 +357,7 @@ public class WalkGrid
                     points.Add(topRight.postition + Vector3.up * p);
                 }
 
-                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing, cylinders));
             }
 
             foreach (float p in bRight)
@@ -377,7 +384,7 @@ public class WalkGrid
                     points.Add(bottomRight.postition + Vector3.up * p);
                 }
 
-                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing, cylinders));
             }
 
             foreach (float p in bLeft)
@@ -388,7 +395,7 @@ public class WalkGrid
                 points.Add(bottomLeft.postition + Vector3.up * p);
                 configuration += 1;// 1 = bottom left
 
-                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing));
+                walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing, cylinders));
             }
         }
 
@@ -405,16 +412,16 @@ public class WalkGrid
 
             public Vector3[] walkEdgePoints;
 
-            public WalkPointGroup(Vector3[] points, short walkPointConfiguration, float pollSpacing)
+            public WalkPointGroup(Vector3[] points, short walkPointConfiguration, float pollSpacing, List<Cylinder> cylinders)
             {
                 this.points = points;
                 this.walkPointConfiguration = walkPointConfiguration;
 
-                walkEdgePoints = CreateWalkEdge(pollSpacing);
+                walkEdgePoints = CreateWalkEdge(pollSpacing, cylinders);
             }
 
 
-            Vector3[] CreateWalkEdge(float pollSpacing)
+            Vector3[] CreateWalkEdge(float pollSpacing, List<Cylinder> cylinders)
             {
                 Vector3[] ret = null;
 
@@ -430,7 +437,7 @@ public class WalkGrid
                     case 2:
                     case 4:
                     case 8:
-                        ret = FindWalkEdge1Point(walkPointConfiguration, pollSpacing);
+                        ret = FindWalkEdge1Point(walkPointConfiguration, pollSpacing, cylinders);
                         break;
 
                     // 2 point :
@@ -440,7 +447,7 @@ public class WalkGrid
                     case 9:
                     case 10:
                     case 12:
-                        ret = FindWalkEdge2Point(walkPointConfiguration, pollSpacing);
+                        ret = FindWalkEdge2Point(walkPointConfiguration, pollSpacing, cylinders);
                         break;
 
                     // 3 point :
@@ -448,7 +455,7 @@ public class WalkGrid
                     case 11:
                     case 13:
                     case 14:
-                        ret = FindWalkEdge3Point(walkPointConfiguration, pollSpacing);
+                        ret = FindWalkEdge3Point(walkPointConfiguration, pollSpacing, cylinders);
                         break;
 
 
@@ -465,7 +472,7 @@ public class WalkGrid
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private Vector3[] FindWalkEdge1Point(int confg, float pollSpacing)
+            private Vector3[] FindWalkEdge1Point(int confg, float pollSpacing, List<Cylinder> cylinders)
             {
                 int verticalModifier = 0, horizontalModifier = 0;
 
@@ -505,7 +512,7 @@ public class WalkGrid
                     ret[1] = points[0];
                     ret[2] = points[0];
 
-                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, stepHeight, 2);
+                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, stepHeight, 2, cylinders);
                 }
 
                 return ret;
@@ -514,7 +521,7 @@ public class WalkGrid
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             //Helper function for setting WalkEdgePoints based off of only one point
             void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing,
-                                            float playerStepHeight, float playerHeight, int loopCount = 3)
+                                            float playerStepHeight, float playerHeight, List<Cylinder> cylinders, int loopCount = 3)
             {
                 RaycastHit[] hits = new RaycastHit[255]; 
                 Vector3 rayHeight = new Vector3(0, 255, 0);
@@ -541,7 +548,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, pointHeight, pointHeight))
+                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, pointHeight, pointHeight, cylinders))
                         {
                             ret[0].z += pollSpacing * verticalModifier;
                         }
@@ -560,7 +567,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, pointHeight, pointHeight))
+                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, pointHeight, pointHeight, cylinders))
                         {
                             ret[1].z += pollSpacing * verticalModifier;
                             ret[1].x += pollSpacing * horizontalModifier;
@@ -582,7 +589,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[2], hits, hitCount, playerHeight, pointHeight, pointHeight))
+                        if (FindValidPoint(ref ret[2], hits, hitCount, playerHeight, pointHeight, pointHeight, cylinders))
                         {
                             ret[2].x += pollSpacing * horizontalModifier;
                         }
@@ -601,7 +608,7 @@ public class WalkGrid
             
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private Vector3[] FindWalkEdge2Point(int confg, float pollSpacing)
+            private Vector3[] FindWalkEdge2Point(int confg, float pollSpacing, List<Cylinder> cylinders)
             {
                 Vector3[] ret = new Vector3[2];
 
@@ -647,7 +654,7 @@ public class WalkGrid
 
                 if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0)
                 {
-                    SetWalkEdgePointsFor2Point(ref ret, p0H, p0V, p1H, p1V, pollSpacing, stepHeight, 2);
+                    SetWalkEdgePointsFor2Point(ref ret, p0H, p0V, p1H, p1V, pollSpacing, stepHeight, 2, cylinders);
                 }
 
                 return ret;
@@ -655,7 +662,7 @@ public class WalkGrid
 
             //Helper function for setting WalkEdgePoints based off of two points
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            void SetWalkEdgePointsFor2Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, float pollSpacing, float playerStepHeight, float playerHeight, int loopCount = 3)
+            void SetWalkEdgePointsFor2Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, float pollSpacing, float playerStepHeight, float playerHeight, List<Cylinder> cylinders, int loopCount = 3)
             {
                 RaycastHit[] hits = new RaycastHit[255];
                 Vector3 rayHeight = new Vector3(0, 255, 0);
@@ -681,7 +688,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, minHeight, maxHeight, cylinders))
                         {
                             ret[0].x += pollSpacing * p0H;
                             ret[0].z += pollSpacing * p0V;
@@ -703,7 +710,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, minHeight, maxHeight, cylinders))
                         {
                             ret[1].x += pollSpacing * p1H;
                             ret[1].z += pollSpacing * p1V;
@@ -724,7 +731,7 @@ public class WalkGrid
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private Vector3[] FindWalkEdge3Point(int confg, float pollSpacing)
+            private Vector3[] FindWalkEdge3Point(int confg, float pollSpacing, List<Cylinder> cylinders)
             {
                 Vector3[] ret = new Vector3[3]; ;
 
@@ -779,7 +786,7 @@ public class WalkGrid
 
                 if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0 || p2H != 0 || p2V != 0)
                 {
-                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, stepHeight, 2);
+                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, stepHeight, 2, cylinders);
                 }
 
                 return ret;
@@ -787,7 +794,7 @@ public class WalkGrid
 
             //Helper function for setting WalkEdgePoints based off of three points
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, float playerStepHeight, float playerHeight, int loopCount = 3)
+            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, float playerStepHeight, float playerHeight, List<Cylinder> cylinders, int loopCount = 3)
             {
                 RaycastHit[] hits = new RaycastHit[255];
                 Vector3 rayHeight = new Vector3(0, 255, 0);
@@ -816,7 +823,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, minHeight, maxHeight, cylinders))
                         {
                             ret[0].x += pollSpacing * p0H;
                             ret[0].z += pollSpacing * p0V;
@@ -838,7 +845,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, minHeight, maxHeight, cylinders))
                         {
                             ret[1].x += pollSpacing * p1H;
                             ret[1].z += pollSpacing * p1V;
@@ -860,7 +867,7 @@ public class WalkGrid
                     {
                         hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                        if (FindValidPoint(ref ret[2], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        if (FindValidPoint(ref ret[2], hits, hitCount, playerHeight, minHeight, maxHeight, cylinders))
                         {
                             ret[2].x += pollSpacing * p2H;
                             ret[2].z += pollSpacing * p2V;
@@ -880,7 +887,7 @@ public class WalkGrid
                 }
             }
 
-            private static bool FindValidPoint(ref Vector3 ret, RaycastHit[] hits, int hitCount, float playerHeight, float minHeight, float maxHeight)
+            private static bool FindValidPoint(ref Vector3 ret, RaycastHit[] hits, int hitCount, float playerHeight, float minHeight, float maxHeight, List<Cylinder> cylinders)
             {
                 List<Collider> blockerCollider = new List<Collider>();
 
@@ -897,7 +904,7 @@ public class WalkGrid
                     }
                     else
                     {
-                        foreach (var c in blockerCollider)
+                        foreach (Collider c in blockerCollider)
                         {
                             if (IsPointInCollider(c, hit.point))
                             {
@@ -913,10 +920,21 @@ public class WalkGrid
                         {
                             valid = false;
                         }
-
-                        if (h != hitCount - 1 && (hit.point.y + playerHeight > hits[h + 1].point.y || Physics.Raycast(hit.point, Vector3.up, playerHeight)))
+                        else if (h != hitCount - 1 && (hit.point.y + playerHeight > hits[h + 1].point.y || Physics.Raycast(hit.point, Vector3.up, playerHeight)))
                         {
                             valid = false;
+                        }
+                        else
+                        {
+                            if(cylinders != null)
+                                foreach(Cylinder c in cylinders)
+                                {
+                                    if(c.ContrainsPoint(hit.point))
+                                    {
+                                        valid = false;
+                                        break;
+                                    }
+                                }
                         }
                     }
 
