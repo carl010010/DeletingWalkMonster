@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class WalkGrid
@@ -145,8 +146,38 @@ public class WalkGrid
                 }
             }
 
+            bool[,] culledTestPoints;
 
-            bool[,] culledTestPoints = new bool[gridLength, gridLength];
+            Erode(ref map, out culledTestPoints, pollSpacing, playerRadius, gridLength);
+
+            for (int x = 0; x < gridLength - 1; x++)
+            {
+                for (int y = 0; y < gridLength - 1; y++)
+                {
+                    //TODO Is this optimization helpfull?
+                    if (culledTestPoints[x, y] == true ||
+                        culledTestPoints[x + 1, y] == true ||
+                        culledTestPoints[x, y + 1] == true ||
+                        culledTestPoints[x + 1, y + 1] == true)
+                    {
+                        walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing);
+                    }
+                }
+            }
+
+            //TODO Try doing the extra ones after instead of while inside the main for loop
+            //if (culledTestPoints[x, y] == true ||
+            //            culledTestPoints[x + 1, y] == true ||
+            //            culledTestPoints[x, y + 1] == true ||
+            //            culledTestPoints[x + 1, y + 1] == true)
+            //{
+            //    walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing);
+            //}
+        }
+
+        private void Erode(ref Poll[,] map, out bool[,] culledTestPoints, float pollSpacing, float playerRadius, int gridLength)
+        {
+            culledTestPoints = new bool[gridLength, gridLength];
 
             //errod
             // foreach walkEdgePoints erods poll map
@@ -180,7 +211,7 @@ public class WalkGrid
                                         {
                                             float p = map[i, j].yHeights[a];
 
-                                            if(Mathf.Abs(p - wE.y) < 0.5)
+                                            if (Mathf.Abs(p - wE.y) < 0.5)
                                             {
                                                 //Debug.Log("Removing");
                                                 map[i, j].yHeights.Remove(p);
@@ -206,21 +237,6 @@ public class WalkGrid
 
             //    }
             //}
-
-            for (int x = 0; x < gridLength - 1; x++)
-            {
-                for (int y = 0; y < gridLength - 1; y++)
-                {
-                    //TODO Is this optimization helpfull?
-                    if (culledTestPoints[x, y] == true ||
-                        culledTestPoints[x + 1, y] == true||
-                        culledTestPoints[x, y + 1] == true ||
-                        culledTestPoints[x + 1, y + 1] == true)
-                    {
-                        walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing);
-                    }
-                }
-            }
         }
     }
 
@@ -228,16 +244,13 @@ public class WalkGrid
 
     public class WalkCell
     {
-        private const float StepHeight = 1;
+        private const float stepHeight = 1;
         public List<WalkPointGroup> walkGroups = new List<WalkPointGroup>();
 
         public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
         {
 
             FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft, pollSpacing);
-            //errod
-            //update FillWalkPoints(topLeft, topRight, bottomRight, bottomLeft);
-
         }
 
         void FillWalkPoints(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing)
@@ -263,7 +276,7 @@ public class WalkGrid
 
                 foreach (float p1 in tRight)
                 {
-                    if (Mathf.Abs(p - p1) < StepHeight)
+                    if (Mathf.Abs(p - p1) < stepHeight)
                     {
                         points.Add(topRight.postition + Vector3.up * p1);
                         configuration += 4;// 4 = top right
@@ -274,7 +287,7 @@ public class WalkGrid
 
                 foreach (float p2 in bRight)
                 {
-                    if (Mathf.Abs(p - p2) < StepHeight)
+                    if (Mathf.Abs(p - p2) < stepHeight)
                     {
                         points.Add(bottomRight.postition + Vector3.up * p2);
                         configuration += 2;// 2 = bottom right
@@ -285,7 +298,7 @@ public class WalkGrid
 
                 foreach (float p3 in bLeft)
                 {
-                    if (Mathf.Abs(p - p3) < StepHeight)
+                    if (Mathf.Abs(p - p3) < stepHeight)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p3);
                         configuration += 1;// 1 = bottom left
@@ -312,7 +325,7 @@ public class WalkGrid
 
                 foreach (float p1 in bRight)
                 {
-                    if (Mathf.Abs(p - p1) < StepHeight)
+                    if (Mathf.Abs(p - p1) < stepHeight)
                     {
                         points.Add(bottomRight.postition + Vector3.up * p1);
                         configuration += 2;// 2 = bottom right
@@ -323,7 +336,7 @@ public class WalkGrid
 
                 foreach (float p2 in bLeft)
                 {
-                    if (Mathf.Abs(p - p2) < StepHeight)
+                    if (Mathf.Abs(p - p2) < stepHeight)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p2);
                         configuration += 1;// 1 = bottom left
@@ -350,7 +363,7 @@ public class WalkGrid
 
                 foreach (float p1 in bLeft)
                 {
-                    if (Mathf.Abs(p - p1) < StepHeight)
+                    if (Mathf.Abs(p - p1) < stepHeight)
                     {
                         points.Add(bottomLeft.postition + Vector3.up * p1);
                         configuration += 1;// 1 = bottom left
@@ -451,6 +464,7 @@ public class WalkGrid
                 return ret;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private Vector3[] FindWalkEdge1Point(int confg, float pollSpacing)
             {
                 int verticalModifier = 0, horizontalModifier = 0;
@@ -488,27 +502,26 @@ public class WalkGrid
                     ret = new Vector3[3];
 
                     ret[0] = points[0];
-                    ret[0].y += StepHeight;
-
                     ret[1] = points[0];
-                    ret[1].y += StepHeight;
-
                     ret[2] = points[0];
-                    ret[2].y += StepHeight;
 
-                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, 1, 3);
-
-                    ret[0].y = points[0].y;
-                    ret[1].y = points[0].y;
-                    ret[2].y = points[0].y;
+                    SetWalkEdgePointsFor1Point(ref ret, verticalModifier, horizontalModifier, pollSpacing, stepHeight, 2);
                 }
 
                 return ret;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             //Helper function for setting WalkEdgePoints based off of only one point
-            void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing, float playerHeight,  int loopCount = 3)
+            void SetWalkEdgePointsFor1Point(ref Vector3[] ret, int verticalModifier, int horizontalModifier, float pollSpacing,
+                                            float playerStepHeight, float playerHeight, int loopCount = 3)
             {
+                RaycastHit[] hits = new RaycastHit[255]; 
+                Vector3 rayHeight = new Vector3(0, 255, 0);
+                float rayLength = rayHeight.y + playerStepHeight;
+                int hitCount;
+
+
                 pollSpacing /= 2;
 
                 ret[0].z += pollSpacing * verticalModifier;
@@ -516,14 +529,26 @@ public class WalkGrid
                 ret[1].x += pollSpacing * horizontalModifier;
                 ret[2].x += pollSpacing * horizontalModifier;
 
+
+                float pointHeight = ret[0].y;
+
                 for (int i = 0; i < loopCount; i++)
                 {
                     pollSpacing /= 2;
 
                     //Vertical
-                    if (Physics.Raycast(ret[0] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[0] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[0].z += pollSpacing * verticalModifier;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, pointHeight, pointHeight))
+                        {
+                            ret[0].z += pollSpacing * verticalModifier;
+                        }
+                        else
+                        {
+                            ret[0].z -= pollSpacing * verticalModifier;
+                        }
                     }
                     else
                     {
@@ -531,10 +556,20 @@ public class WalkGrid
                     }
 
                     //45 degre
-                    if (Physics.Raycast(ret[1] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[1] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[1].z += pollSpacing * verticalModifier;
-                        ret[1].x += pollSpacing * horizontalModifier;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, pointHeight, pointHeight))
+                        {
+                            ret[1].z += pollSpacing * verticalModifier;
+                            ret[1].x += pollSpacing * horizontalModifier;
+                        }
+                        else
+                        {
+                            ret[1].z -= pollSpacing * verticalModifier;
+                            ret[1].x -= pollSpacing * horizontalModifier;
+                        }
                     }
                     else
                     {
@@ -543,9 +578,18 @@ public class WalkGrid
                     }
 
                     //Horizontal
-                    if (Physics.Raycast(ret[2] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[2] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[2].x += pollSpacing * horizontalModifier;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[2], hits, hitCount, playerHeight, pointHeight, pointHeight))
+                        {
+                            ret[2].x += pollSpacing * horizontalModifier;
+                        }
+                        else
+                        {
+                            ret[2].x -= pollSpacing * horizontalModifier;
+                        }
                     }
                     else
                     {
@@ -554,6 +598,9 @@ public class WalkGrid
                 }
             }
 
+            
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private Vector3[] FindWalkEdge2Point(int confg, float pollSpacing)
             {
                 Vector3[] ret = new Vector3[2];
@@ -600,15 +647,24 @@ public class WalkGrid
 
                 if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0)
                 {
-                    SetWalkEdgePointsFor2Point(ref ret, p0H, p0V, p1H, p1V, pollSpacing, 1, 3);
+                    SetWalkEdgePointsFor2Point(ref ret, p0H, p0V, p1H, p1V, pollSpacing, stepHeight, 2);
                 }
 
                 return ret;
             }
 
             //Helper function for setting WalkEdgePoints based off of two points
-            void SetWalkEdgePointsFor2Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, float pollSpacing, float playerHeight, int loopCount = 3)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            void SetWalkEdgePointsFor2Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, float pollSpacing, float playerStepHeight, float playerHeight, int loopCount = 3)
             {
+                RaycastHit[] hits = new RaycastHit[255];
+                Vector3 rayHeight = new Vector3(0, 255, 0);
+                float rayLength = rayHeight.y + playerStepHeight;
+                int hitCount;
+
+                float minHeight = Mathf.Min(ret[0].y, ret[1].y);
+                float maxHeight = Mathf.Max(ret[0].y, ret[1].y);
+
                 pollSpacing /= 2;
 
                 ret[0].x += pollSpacing * p0H;
@@ -621,10 +677,20 @@ public class WalkGrid
                 {
                     pollSpacing /= 2;
                     //p0
-                    if (Physics.Raycast(ret[0] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[0] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[0].x += pollSpacing * p0H;
-                        ret[0].z += pollSpacing * p0V;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        {
+                            ret[0].x += pollSpacing * p0H;
+                            ret[0].z += pollSpacing * p0V;
+                        }
+                        else
+                        {
+                            ret[0].x -= pollSpacing * p0H;
+                            ret[0].z -= pollSpacing * p0V;
+                        }
                     }
                     else
                     {
@@ -633,10 +699,21 @@ public class WalkGrid
                     }
 
                     //p1
-                    if (Physics.Raycast(ret[1] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[1] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[1].x += pollSpacing * p1H;
-                        ret[1].z += pollSpacing * p1V;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        {
+                            ret[1].x += pollSpacing * p1H;
+                            ret[1].z += pollSpacing * p1V;
+                        }
+                        else
+                        {
+                            ret[1].x -= pollSpacing * p1H;
+                            ret[1].z -= pollSpacing * p1V;
+                        }
+                        
                     }
                     else
                     {
@@ -646,6 +723,7 @@ public class WalkGrid
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private Vector3[] FindWalkEdge3Point(int confg, float pollSpacing)
             {
                 Vector3[] ret = new Vector3[3]; ;
@@ -701,16 +779,24 @@ public class WalkGrid
 
                 if (p0H != 0 || p0V != 0 || p1H != 0 || p1V != 0 || p2H != 0 || p2V != 0)
                 {
-
-                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, 1 , 3);
+                    SetWalkEdgePointsFor3Point(ref ret, p0H, p0V, p1H, p1V, p2H, p2V, pollSpacing, stepHeight, 2);
                 }
 
                 return ret;
             }
 
             //Helper function for setting WalkEdgePoints based off of three points
-            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, float playerHeight, int loopCount = 3)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            void SetWalkEdgePointsFor3Point(ref Vector3[] ret, int p0H, int p0V, int p1H, int p1V, int p2H, int p2V, float pollSpacing, float playerStepHeight, float playerHeight, int loopCount = 3)
             {
+                RaycastHit[] hits = new RaycastHit[255];
+                Vector3 rayHeight = new Vector3(0, 255, 0);
+                float rayLength = rayHeight.y + playerStepHeight;
+                int hitCount;
+
+                float minHeight = Mathf.Min(ret[0].y, ret[1].y);
+                float maxHeight = Mathf.Max(ret[0].y, ret[1].y);
+
                 pollSpacing /= 2;
 
                 ret[0].x += pollSpacing * p0H;
@@ -726,10 +812,20 @@ public class WalkGrid
                 {
                     pollSpacing /= 2;
                     //p0
-                    if (Physics.Raycast(ret[0] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[0] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[0].x += pollSpacing * p0H;
-                        ret[0].z += pollSpacing * p0V;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[0], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        {
+                            ret[0].x += pollSpacing * p0H;
+                            ret[0].z += pollSpacing * p0V;
+                        }
+                        else
+                        {
+                            ret[0].x -= pollSpacing * p0H;
+                            ret[0].z -= pollSpacing * p0V;
+                        }
                     }
                     else
                     {
@@ -738,10 +834,20 @@ public class WalkGrid
                     }
 
                     //p1
-                    if (Physics.Raycast(ret[1] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[1] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[1].x += pollSpacing * p1H;
-                        ret[1].z += pollSpacing * p1V;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[1], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        {
+                            ret[1].x += pollSpacing * p1H;
+                            ret[1].z += pollSpacing * p1V;
+                        }
+                        else
+                        {
+                            ret[1].x -= pollSpacing * p1H;
+                            ret[1].z -= pollSpacing * p1V;
+                        }
                     }
                     else
                     {
@@ -750,10 +856,21 @@ public class WalkGrid
                     }
 
                     //p2
-                    if (Physics.Raycast(ret[2] + Vector3.up * playerHeight, Vector3.down, playerHeight * 2))
+                    if (0 < (hitCount = Physics.RaycastNonAlloc(ret[2] + rayHeight, Vector3.down, hits, rayLength)))
                     {
-                        ret[2].x += pollSpacing * p2H;
-                        ret[2].z += pollSpacing * p2V;
+                        hits = MathUtils.RaycastHitSortByY(hits, hitCount);
+
+                        if (FindValidPoint(ref ret[2], hits, hitCount, playerHeight, minHeight, maxHeight))
+                        {
+                            ret[2].x += pollSpacing * p2H;
+                            ret[2].z += pollSpacing * p2V;
+                        }
+                        else
+                        {
+                            ret[2].x -= pollSpacing * p2H;
+                            ret[2].z -= pollSpacing * p2V;
+                        }
+                        
                     }
                     else
                     {
@@ -761,6 +878,56 @@ public class WalkGrid
                         ret[2].z -= pollSpacing * p2V;
                     }
                 }
+            }
+
+            private static bool FindValidPoint(ref Vector3 ret, RaycastHit[] hits, int hitCount, float playerHeight, float minHeight, float maxHeight)
+            {
+                List<Collider> blockerCollider = new List<Collider>();
+
+                for (int h = 0; h < hitCount; h++)
+                {
+                    bool valid = true;
+
+                    RaycastHit hit = hits[h];
+
+                    if (hit.collider.gameObject.layer == 8)
+                    {
+                        blockerCollider.Add(hit.collider);
+                        valid = false;
+                    }
+                    else
+                    {
+                        foreach (var c in blockerCollider)
+                        {
+                            if (IsPointInCollider(c, hit.point))
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (valid)
+                    {
+                        if (hit.point.y < minHeight - stepHeight || hit.point.y > maxHeight + stepHeight)
+                        {
+                            valid = false;
+                        }
+
+                        if (h != hitCount - 1 && (hit.point.y + playerHeight > hits[h + 1].point.y || Physics.Raycast(hit.point, Vector3.up, playerHeight)))
+                        {
+                            valid = false;
+                        }
+                    }
+
+                    if (valid)
+                    {
+                        ret.y = hit.point.y;
+                        return true;
+                    }
+                }
+
+                return false;
             }
         }
     }
