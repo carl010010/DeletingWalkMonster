@@ -583,7 +583,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 285053420}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 13.792, y: 2.867, z: -2.792}
+  m_LocalPosition: {x: 14.034, y: 2.405, z: -1.746}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1916,6 +1916,7 @@ MonoBehaviour:
   SqrSize: 5
   lineCount: 30
   playerHeight: 2
+  stepHeight: 0.9
   drawRay: 0
   drawCross: 0
 --- !u!4 &1410880162
@@ -1926,7 +1927,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1410880160}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 13.39, y: 0.542, z: -1.8}
+  m_LocalPosition: {x: 13.654, y: 0.542, z: -3.388}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
