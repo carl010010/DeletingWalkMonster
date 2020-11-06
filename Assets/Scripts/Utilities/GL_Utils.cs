@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -46,17 +47,23 @@ public static class GL_Utils
     }
 
 
-    public static void DrawLine(Vector3 start, Vector3 end, Color sColor)
+    public static void DrawLine(Vector3 start, Vector3 end, Color color)
     {
-        DrawLine(start, end, sColor, sColor);
+        DrawLine(start, end, color, color);
     }
 
-    public static void DrawLine(Vector3 start, Vector3 end, Color sColor, Color eColor)
+    internal static void DrawLine(Vector3 start, Vector3 direction, float rayLength, Color color)
     {
-        GL.Color(sColor);
+        DrawLine(start, start + direction * rayLength, color, color);
+    }
+
+
+    public static void DrawLine(Vector3 start, Vector3 end, Color startColor, Color endColor)
+    {
+        GL.Color(startColor);
 
         GL.Vertex(start);
-        GL.Color(eColor);
+        GL.Color(endColor);
         GL.Vertex(end);
     }
 

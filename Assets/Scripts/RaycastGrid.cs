@@ -11,6 +11,7 @@ public class RaycastGrid : MonoBehaviour
     public int lineCount = 25;
     public float playerHeight = 2;
     public float stepHeight = 0.9f;
+    public float raduis = 0.5f;
 
 
     WalkGrid walkGrid;
@@ -61,7 +62,7 @@ public class RaycastGrid : MonoBehaviour
 
         walkGrid.drawRay = drawRay;
         walkGrid.drawCross = drawCross;
-        walkGrid.GenerateWalkGrid(SqrSize, lineCount, playerHeight, stepHeight, 0.5f, transform.position);
+        walkGrid.GenerateWalkGrid(SqrSize, lineCount, playerHeight, stepHeight, raduis, transform.position);
 
         walkGrid.DisplayGrid();
 

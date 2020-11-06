@@ -90,7 +90,7 @@ public class CellGrid
                                     {
                                         float p = map[i, j].yHeights[a];
 
-                                        if (Mathf.Abs(p - wE.y) < 0.5)
+                                        if (Mathf.Abs(p - wE.y) < playerStepHeight)
                                         {
                                             map[i, j].yHeights.Remove(p);
                                         }
@@ -98,8 +98,8 @@ public class CellGrid
                                 }
                             }
                         }
-                        cylinders.Add(new Cylinder(wE - Vector3.up * playerStepHeight, playerStepHeight, playerRadius));
-                        GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
+                        cylinders.Add(new Cylinder(wE, playerStepHeight, playerRadius));
+                        //GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
                     }
                 }
             }

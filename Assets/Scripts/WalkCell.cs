@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class WalkCell
 {
-    private const float stepHeight = 1;
     public List<WalkPointGroup> walkGroups = new List<WalkPointGroup>();
 
     public WalkCell(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float pollSpacing, float playerHeight, float playerStepHeight, List<MathUtils.Cylinder> cylinders = null)
@@ -35,7 +34,7 @@ public class WalkCell
 
             foreach (float p1 in tRight)
             {
-                if (Mathf.Abs(p - p1) < stepHeight)
+                if (Mathf.Abs(p - p1) < playerStepHeight)
                 {
                     points.Add(topRight.postition + Vector3.up * p1);
                     configuration += 4;// 4 = top right
@@ -46,7 +45,7 @@ public class WalkCell
 
             foreach (float p2 in bRight)
             {
-                if (Mathf.Abs(p - p2) < stepHeight)
+                if (Mathf.Abs(p - p2) < playerStepHeight)
                 {
                     points.Add(bottomRight.postition + Vector3.up * p2);
                     configuration += 2;// 2 = bottom right
@@ -57,7 +56,7 @@ public class WalkCell
 
             foreach (float p3 in bLeft)
             {
-                if (Mathf.Abs(p - p3) < stepHeight)
+                if (Mathf.Abs(p - p3) < playerStepHeight)
                 {
                     points.Add(bottomLeft.postition + Vector3.up * p3);
                     configuration += 1;// 1 = bottom left
@@ -84,7 +83,7 @@ public class WalkCell
 
             foreach (float p1 in bRight)
             {
-                if (Mathf.Abs(p - p1) < stepHeight)
+                if (Mathf.Abs(p - p1) < playerStepHeight)
                 {
                     points.Add(bottomRight.postition + Vector3.up * p1);
                     configuration += 2;// 2 = bottom right
@@ -95,7 +94,7 @@ public class WalkCell
 
             foreach (float p2 in bLeft)
             {
-                if (Mathf.Abs(p - p2) < stepHeight)
+                if (Mathf.Abs(p - p2) < playerStepHeight)
                 {
                     points.Add(bottomLeft.postition + Vector3.up * p2);
                     configuration += 1;// 1 = bottom left
@@ -122,7 +121,7 @@ public class WalkCell
 
             foreach (float p1 in bLeft)
             {
-                if (Mathf.Abs(p - p1) < stepHeight)
+                if (Mathf.Abs(p - p1) < playerStepHeight)
                 {
                     points.Add(bottomLeft.postition + Vector3.up * p1);
                     configuration += 1;// 1 = bottom left

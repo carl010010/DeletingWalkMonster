@@ -507,7 +507,7 @@ GameObject:
   - component: {fileID: 285053423}
   - component: {fileID: 285053422}
   - component: {fileID: 285053421}
-  m_Layer: 8
+  m_Layer: 0
   m_Name: Cylinder
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -546,7 +546,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: e74b7df1ed178426ba57854fb32b7c80, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -583,7 +583,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 285053420}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14.034, y: 2.405, z: -1.746}
+  m_LocalPosition: {x: 14.034, y: 2.899, z: -1.746}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1913,10 +1913,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44a981bc3ec714bf6a3a4d85e638dcfb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SqrSize: 5
-  lineCount: 30
+  SqrSize: 0.1
+  lineCount: 2
   playerHeight: 2
-  stepHeight: 0.9
+  stepHeight: 0.00001
+  raduis: 0.5
   drawRay: 0
   drawCross: 0
 --- !u!4 &1410880162
@@ -1927,7 +1928,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1410880160}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 13.654, y: 0.542, z: -3.388}
+  m_LocalPosition: {x: 14.493, y: 0.542, z: -1.772}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -2019,13 +2020,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1480984836}
-  m_LocalRotation: {x: -0, y: -0, z: 0.16526571, w: 0.9862491}
-  m_LocalPosition: {x: 10.8765, y: 1.838, z: -0}
+  m_LocalRotation: {x: -0, y: -0, z: 0.18437935, w: 0.98285514}
+  m_LocalPosition: {x: 10.8765, y: 1.838, z: 0}
   m_LocalScale: {x: 12.676928, y: 0.04748289, z: 6}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 7
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 19.025002}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 21.250002}
 --- !u!1 &1502013401
 GameObject:
   m_ObjectHideFlags: 0

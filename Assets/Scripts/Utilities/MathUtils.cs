@@ -50,7 +50,6 @@ public class MathUtils
 				return false;
             }
 
-
 			return true;
         }
     }
