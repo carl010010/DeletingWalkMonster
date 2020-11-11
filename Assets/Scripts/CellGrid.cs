@@ -8,10 +8,9 @@ public class CellGrid
 {
     public WalkCell[,] walkCells;
 
-    public CellGrid(Poll[,] map, float pollSpacing, float playerHeight, float stepHeight, float playerRadius)
+    public CellGrid(Poll[,] polls, float pollSpacing, float playerHeight, float playerStepHeight, float playerRadius)
     {
-        int gridLength = map.GetLength(0);
-
+        int gridLength = polls.GetLength(0);
 
         walkCells = new WalkCell[gridLength - 1, gridLength - 1];
 
@@ -19,14 +18,14 @@ public class CellGrid
         {
             for (int y = 0; y < gridLength - 1; y++)
             {
-                walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing, playerHeight, stepHeight);
+                walkCells[x, y] = new WalkCell(polls[x, y + 1], polls[x + 1, y + 1], polls[x + 1, y], polls[x, y], pollSpacing, playerHeight, playerStepHeight);
             }
         }
 
         bool[,] culledTestPoints;
         List<Cylinder> cylinders;
 
-        Erode(ref map, out culledTestPoints, out cylinders, pollSpacing, gridLength, playerRadius, 1);
+        Erode(ref polls, out culledTestPoints, out cylinders, pollSpacing, gridLength, playerRadius, playerStepHeight);
 
         for (int x = 0; x < gridLength - 1; x++)
         {
@@ -38,7 +37,7 @@ public class CellGrid
                     culledTestPoints[x, y + 1] == true ||
                     culledTestPoints[x + 1, y + 1] == true)
                 {
-                    walkCells[x, y] = new WalkCell(map[x, y + 1], map[x + 1, y + 1], map[x + 1, y], map[x, y], pollSpacing, playerHeight, stepHeight, cylinders);
+                    walkCells[x, y] = new WalkCell(polls[x, y + 1], polls[x + 1, y + 1], polls[x + 1, y], polls[x, y], pollSpacing, playerHeight, playerStepHeight, cylinders);
                 }
             }
         }
@@ -53,11 +52,10 @@ public class CellGrid
         //}
     }
 
-    private void Erode(ref Poll[,] map, out bool[,] culledTestPoints, out List<Cylinder> cylinders, float pollSpacing, int gridLength, float playerRadius, float playerStepHeight)
+    private void Erode(ref Poll[,] polls, out bool[,] culledTestPoints, out List<Cylinder> cylinders, float pollSpacing, int gridLength, float playerRadius, float playerStepHeight)
     {
         culledTestPoints = new bool[gridLength, gridLength];
         cylinders = new List<Cylinder>();
-
         //errod
         // foreach walkEdgePoints erods poll map
         for (int x = 0; x < gridLength - 1; x++)
@@ -66,7 +64,7 @@ public class CellGrid
             {
                 foreach (var wG in walkCells[x, y].walkGroups)
                 {
-                    if (wG == null || wG.walkEdgePoints == null)
+                    if (wG == null || wG.walkEdgePoints == null || wG.walkPointConfiguration > 0)
                         continue;
 
                     foreach (var wE in wG.walkEdgePoints)
@@ -80,26 +78,28 @@ public class CellGrid
                             int j = Mathf.Max(0, y - offset);
                             for (; j < gridLength && j < y + offset + 1; j++)
                             {
-                                Vector2 mapPos = new Vector2(map[i, j].postition.x, map[i, j].postition.z);
+                                Vector2 mapPos = new Vector2(polls[i, j].postition.x, polls[i, j].postition.z);
                                 Vector2 walkPos = new Vector2(wE.x, wE.z);
 
-                                if (map[i, j].pointCount != 0 && (mapPos - walkPos).sqrMagnitude < playerRadius * playerRadius)
+                                if (polls[i, j].yHeights.Count != 0 && (mapPos - walkPos).sqrMagnitude < playerRadius * playerRadius)
                                 {
-                                    culledTestPoints[i, j] = true;
-                                    for (int a = map[i, j].yHeights.Count - 1; a >= 0; a--)
+                                    for (int a = polls[i, j].yHeights.Count - 1; a >= 0; a--)
                                     {
-                                        float p = map[i, j].yHeights[a];
+                                        float p = polls[i, j].yHeights[a];
 
-                                        if (Mathf.Abs(p - wE.y) < playerStepHeight)
+                                        if (Mathf.Abs(p - wE.y) < playerStepHeight * 0.2)
                                         {
-                                            map[i, j].yHeights.Remove(p);
+                                            culledTestPoints[i, j] = true;
+                                            polls[i, j].yHeights.Remove(p);
+                                            polls[i, j].yBlockedHeights.Add(p);
                                         }
                                     }
                                 }
+
                             }
                         }
-                        cylinders.Add(new Cylinder(wE, playerStepHeight, playerRadius));
-                        //GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
+                        cylinders.Add(new Cylinder(wE, playerStepHeight * 0.8f, playerRadius));
+                        if (FreeWalkEdgeTest._DisplayCylinders) GL_Utils.DrawCircle(wE, playerRadius, Vector3.up, Color.red);
                     }
                 }
             }

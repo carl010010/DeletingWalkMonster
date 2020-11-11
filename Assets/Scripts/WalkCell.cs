@@ -21,51 +21,75 @@ public class WalkCell
         List<float> bLeft = new List<float>(bottomLeft.yHeights);
 
         short configuration = 0;
+        float height = 0;
+        short retConfig = 0;
+        float retHeight = 0;
+        short ConfigCount = 1;
 
         foreach (float p in tLeft)
         {
             points.Clear();
             configuration = 0;
+            height = 0;
+            retConfig = 0;
+            retHeight = 0;
+            ConfigCount = 1;
 
 
             points.Add(topLeft.postition + Vector3.up * p);
             configuration += 8;// 8 = top left
+            height = p;
+
+            // 4 = top right
+            (retConfig, retHeight) = HasPointInWalkGroup(ref tRight, topRight.postition, ref points, p, 4, playerStepHeight);
+            configuration += retConfig;
+            if (retConfig > 0) ConfigCount++;
+            height += retHeight;
+
+            // 2 = bottom right
+            (retConfig, retHeight) = HasPointInWalkGroup(ref bRight, bottomRight.postition, ref points, p, 2, playerStepHeight);
+            configuration += retConfig;
+            if (retConfig > 0) ConfigCount++;
+            height += retHeight;
+
+            // 1 = bottom left
+            (retConfig, retHeight) = HasPointInWalkGroup(ref bLeft, bottomLeft.postition, ref points, p, 1, playerStepHeight);
+            configuration += retConfig;
+            if (retConfig > 0) ConfigCount++;
+            height += retHeight;
 
 
-            foreach (float p1 in tRight)
+            height /= ConfigCount;
+
+            if ((configuration & 4) != 4)
             {
-                if (Mathf.Abs(p - p1) < playerStepHeight)
-                {
-                    points.Add(topRight.postition + Vector3.up * p1);
-                    configuration += 4;// 4 = top right
-                    tRight.Remove(p1);
-                    break;
-                }
+                (retConfig, retHeight) = HasPointInWalkGroup(ref tRight, topRight.postition, ref points, height, 4, playerStepHeight);
+                configuration += retConfig;
+                if (retConfig > 0) ConfigCount++;
+                height += retHeight;
             }
 
-            foreach (float p2 in bRight)
+            if ((configuration & 2) != 2)
             {
-                if (Mathf.Abs(p - p2) < playerStepHeight)
-                {
-                    points.Add(bottomRight.postition + Vector3.up * p2);
-                    configuration += 2;// 2 = bottom right
-                    bRight.Remove(p2);
-                    break;
-                }
+                (retConfig, retHeight) = HasPointInWalkGroup(ref bRight, bottomRight.postition, ref points, height, 2, playerStepHeight);
+                configuration += retConfig;
+                if (retConfig > 0) ConfigCount++;
+                height += retHeight;
             }
 
-            foreach (float p3 in bLeft)
+            if ((configuration & 1) != 1)
             {
-                if (Mathf.Abs(p - p3) < playerStepHeight)
-                {
-                    points.Add(bottomLeft.postition + Vector3.up * p3);
-                    configuration += 1;// 1 = bottom left
-                    bLeft.Remove(p3);
-                    break;
-                }
+                (retConfig, retHeight) = HasPointInWalkGroup(ref bLeft, bottomLeft.postition, ref points, height, 1, playerStepHeight);
+                configuration += retConfig;
+                if (retConfig > 0) ConfigCount++;
+                height += retHeight;
             }
 
-            if (points.Count > 1)
+            if (configuration != 15)
+            {
+                configuration = Contains_A_BlockedWalkEdge(topLeft, topRight, bottomRight, bottomLeft, playerStepHeight, points, configuration);
+            }
+            if (points.Count > 2)
             {
                 points.Add(topLeft.postition + Vector3.up * p);
             }
@@ -77,33 +101,29 @@ public class WalkCell
         {
             points.Clear();
             configuration = 0;
+            height = 0;
+            retConfig = 0;
+            retHeight = 0;
+            ConfigCount = 1;
 
             points.Add(topRight.postition + Vector3.up * p);
             configuration += 4;// 4 = top right
 
-            foreach (float p1 in bRight)
-            {
-                if (Mathf.Abs(p - p1) < playerStepHeight)
-                {
-                    points.Add(bottomRight.postition + Vector3.up * p1);
-                    configuration += 2;// 2 = bottom right
-                    bRight.Remove(p1);
-                    break;
-                }
-            }
+            // 2 = bottom right
+            (retConfig, retHeight) = HasPointInWalkGroup(ref bRight, bottomRight.postition, ref points, p, 2, playerStepHeight);
+            configuration += retConfig;
+            if (retConfig > 0) ConfigCount++;
+            height += retHeight;
 
-            foreach (float p2 in bLeft)
-            {
-                if (Mathf.Abs(p - p2) < playerStepHeight)
-                {
-                    points.Add(bottomLeft.postition + Vector3.up * p2);
-                    configuration += 1;// 1 = bottom left
-                    bLeft.Remove(p2);
-                    break;
-                }
-            }
+            // 1 = bottom left
+            (retConfig, retHeight) = HasPointInWalkGroup(ref bLeft, bottomLeft.postition, ref points, p, 1, playerStepHeight);
+            configuration += retConfig;
+            if (retConfig > 0) ConfigCount++;
+            height += retHeight;
 
-            if (points.Count > 1)
+            configuration = Contains_A_BlockedWalkEdge(topLeft, topRight, bottomRight, bottomLeft, playerStepHeight, points, configuration);
+
+            if (points.Count > 2)
             {
                 points.Add(topRight.postition + Vector3.up * p);
             }
@@ -115,22 +135,23 @@ public class WalkCell
         {
             points.Clear();
             configuration = 0;
+            height = 0;
+            retConfig = 0;
+            retHeight = 0;
+            ConfigCount = 1;
 
             points.Add(bottomRight.postition + Vector3.up * p);
             configuration += 2;// 2 = bottom right
 
-            foreach (float p1 in bLeft)
-            {
-                if (Mathf.Abs(p - p1) < playerStepHeight)
-                {
-                    points.Add(bottomLeft.postition + Vector3.up * p1);
-                    configuration += 1;// 1 = bottom left
-                    bLeft.Remove(p1);
-                    break;
-                }
-            }
+            // 1 = bottom left
+            (retConfig, retHeight) = HasPointInWalkGroup(ref bLeft, bottomLeft.postition, ref points, p, 1, playerStepHeight);
+            configuration += retConfig;
+            if (retConfig > 0) ConfigCount++;
+            height += retHeight;
 
-            if (points.Count > 1)
+            configuration = Contains_A_BlockedWalkEdge(topLeft, topRight, bottomRight, bottomLeft, playerStepHeight, points, configuration);
+
+            if (points.Count > 2)
             {
                 points.Add(bottomRight.postition + Vector3.up * p);
             }
@@ -146,7 +167,71 @@ public class WalkCell
             points.Add(bottomLeft.postition + Vector3.up * p);
             configuration += 1;// 1 = bottom left
 
+            configuration = Contains_A_BlockedWalkEdge(topLeft, topRight, bottomRight, bottomLeft, playerStepHeight, points, configuration);
+
+
             walkGroups.Add(new WalkPointGroup(points.ToArray(), configuration, pollSpacing, playerHeight, playerStepHeight, cylinders));
         }
+    }
+
+    // pointConfiguration:
+    // 8 = top left
+    // 4 = top right
+    // 2 = bottom right
+    // 1 = bottom left
+    private static (short configuration, float pointHeight)
+                    HasPointInWalkGroup(ref List<float> pollPoints, Vector3 pollPostition, ref List<Vector3> points, float p, short pointConfiguration, float playerStepHeight)
+    {
+        foreach (float p1 in pollPoints)
+        {
+            if (Mathf.Abs(p - p1) < playerStepHeight)
+            {
+                points.Add(pollPostition + Vector3.up * p1);
+                pollPoints.Remove(p1);
+                return (pointConfiguration, p1);
+            }
+        }
+
+        return (0,0);
+    }
+
+    private static short Contains_A_BlockedWalkEdge(Poll topLeft, Poll topRight, Poll bottomRight, Poll bottomLeft, float playerStepHeight, List<Vector3> points, short configuration)
+    {
+        for (int i = 0; i < points.Count && configuration > 0; i++)
+        {
+            Vector3 v = points[i];
+            configuration = ContainsBlockedWalkPoint(topLeft, configuration, v);
+
+            if (configuration < 0)
+                break;
+
+            configuration = ContainsBlockedWalkPoint(topRight, configuration, v);
+
+            if (configuration < 0)
+                break;
+
+            configuration = ContainsBlockedWalkPoint(bottomRight, configuration, v);
+
+            if (configuration < 0)
+                break;
+
+            configuration = ContainsBlockedWalkPoint(bottomLeft, configuration, v);
+        }
+
+        return configuration;
+    }
+
+    private static short ContainsBlockedWalkPoint(Poll poll, short configuration, Vector3 v)
+    {
+        foreach (float f in poll.yBlockedHeights)
+        {
+            if (v.y <= f + 0.1)
+            {
+                configuration *= -1;
+                break;
+            }
+        }
+
+        return configuration;
     }
 }

@@ -5,6 +5,26 @@ using UnityEngine;
 
 public static class GL_Utils
 {
+    public static Material CreateLineMaterial()
+    {
+        Material lineMaterial;
+
+        // Unity has a built-in shader that is useful for drawing simple colored things
+        Shader shader = Shader.Find("Hidden/Internal-Colored");
+        lineMaterial = new Material(shader);
+        lineMaterial.hideFlags = HideFlags.HideAndDontSave;
+        // Turn on alpha blending
+        lineMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        lineMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        // Turn backface culling off
+        lineMaterial.SetInt("_Cull", (int)UnityEngine.Rendering.CullMode.Off);
+        // Turn off depth writes
+        lineMaterial.SetInt("_ZWrite", 0);
+
+        return lineMaterial;
+    }
+
+
     public static void DrawCrossNormal(Vector3 pos, Vector3 normal, Color color, float size = 0.1f)
     {
         DrawCross(pos, normal, color, size);
@@ -15,7 +35,7 @@ public static class GL_Utils
         DrawCross(pos, Vector3.up, color, size);
     }
 
-    public static void DrawCross(Vector3 pos, Vector3 normal, Color color, float size)
+    static void DrawCross(Vector3 pos, Vector3 normal, Color color, float size)
     {
         var p0 = new Vector3(-size / 2, 0, size / 2);
         var p1 = new Vector3(size / 2, 0, -size / 2);

@@ -10,7 +10,7 @@ public class WalkPointGroup
     float playerStepHeight;
     float playerHeight;
 
-    // 15 = all four points are insde the walkgroup
+    // 15 = all four points are inside the walkgroup
     // 8 = top left
     // 4 = top right
     // 2 = bottom right
@@ -26,15 +26,14 @@ public class WalkPointGroup
         this.playerHeight = playerHeight;
         this.playerStepHeight = playerStepHeight;
 
-        walkEdgePoints = CreateWalkEdge(pollSpacing, cylinders);
+        walkEdgePoints = CreateWalkEdge(Mathf.Abs(walkPointConfiguration) ,pollSpacing, cylinders);
     }
 
-    Vector3[] CreateWalkEdge(float pollSpacing, List<MathUtils.Cylinder> cylinders)
+    Vector3[] CreateWalkEdge(int config, float pollSpacing, List<MathUtils.Cylinder> cylinders)
     {
         Vector3[] ret = null;
 
-
-        switch (walkPointConfiguration)
+        switch (config)
         {
             case 0: //You should not be able to have a WalkPointGroup with zero points
                 Debug.LogError("WalkPointGroup has a walkPointConfiguration that out of bounds: " + walkPointConfiguration);
@@ -45,7 +44,7 @@ public class WalkPointGroup
             case 2:
             case 4:
             case 8:
-                ret = FindWalkEdge1Point(walkPointConfiguration, pollSpacing, cylinders);
+                ret = FindWalkEdge1Point(config, pollSpacing, cylinders);
                 break;
 
             // 2 point :
@@ -55,7 +54,7 @@ public class WalkPointGroup
             case 9:
             case 10:
             case 12:
-                ret = FindWalkEdge2Point(walkPointConfiguration, pollSpacing, cylinders);
+                ret = FindWalkEdge2Point(config, pollSpacing, cylinders);
                 break;
 
             // 3 point :
@@ -63,7 +62,7 @@ public class WalkPointGroup
             case 11:
             case 13:
             case 14:
-                ret = FindWalkEdge3Point(walkPointConfiguration, pollSpacing, cylinders);
+                ret = FindWalkEdge3Point(config, pollSpacing, cylinders);
                 break;
 
 
@@ -72,7 +71,7 @@ public class WalkPointGroup
                 break;
 
             default:
-                Debug.LogError("WalkPointGroup has a walkPointConfiguration that out of bounds: " + walkPointConfiguration);
+                Debug.LogError("WalkPointGroup has a walkPointConfiguration that out of bounds: " + config);
                 break;
         }
 
@@ -155,7 +154,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[0], hits, hitCount, pointHeight, pointHeight, cylinders))
+                if (FindValidPoint(ref ret[0], hits, hitCount, pointHeight, cylinders))
                 {
                     ret[0].z += pollSpacing * verticalModifier;
                 }
@@ -174,7 +173,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[1], hits, hitCount, pointHeight, pointHeight, cylinders))
+                if (FindValidPoint(ref ret[1], hits, hitCount, pointHeight, cylinders))
                 {
                     ret[1].z += pollSpacing * verticalModifier;
                     ret[1].x += pollSpacing * horizontalModifier;
@@ -196,7 +195,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[2], hits, hitCount, pointHeight, pointHeight, cylinders))
+                if (FindValidPoint(ref ret[2], hits, hitCount, pointHeight, cylinders))
                 {
                     ret[2].x += pollSpacing * horizontalModifier;
                 }
@@ -274,8 +273,7 @@ public class WalkPointGroup
         float rayLength = rayHeight.y + playerStepHeight;
         int hitCount;
 
-        float minHeight = Mathf.Min(ret[0].y, ret[1].y);
-        float maxHeight = Mathf.Max(ret[0].y, ret[1].y);
+        float averageHeight = (ret[0].y + ret[1].y) / 2;
 
         pollSpacing /= 2;
 
@@ -293,7 +291,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[0], hits, hitCount, minHeight, maxHeight, cylinders))
+                if (FindValidPoint(ref ret[0], hits, hitCount, averageHeight, cylinders))
                 {
                     ret[0].x += pollSpacing * p0H;
                     ret[0].z += pollSpacing * p0V;
@@ -315,7 +313,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[1], hits, hitCount, minHeight, maxHeight, cylinders))
+                if (FindValidPoint(ref ret[1], hits, hitCount, averageHeight, cylinders))
                 {
                     ret[1].x += pollSpacing * p1H;
                     ret[1].z += pollSpacing * p1V;
@@ -406,8 +404,7 @@ public class WalkPointGroup
         float rayLength = rayHeight.y + playerStepHeight;
         int hitCount;
 
-        float minHeight = Mathf.Min(ret[0].y, ret[1].y);
-        float maxHeight = Mathf.Max(ret[0].y, ret[1].y);
+        float averageHeight = (ret[0].y + ret[1].y + ret[2].y)/3;
 
         pollSpacing /= 2;
 
@@ -428,7 +425,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[0], hits, hitCount, minHeight, maxHeight, cylinders))
+                if (FindValidPoint(ref ret[0], hits, hitCount, averageHeight, cylinders))
                 {
                     ret[0].x += pollSpacing * p0H;
                     ret[0].z += pollSpacing * p0V;
@@ -450,7 +447,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[1], hits, hitCount, minHeight, maxHeight, cylinders))
+                if (FindValidPoint(ref ret[1], hits, hitCount, averageHeight, cylinders))
                 {
                     ret[1].x += pollSpacing * p1H;
                     ret[1].z += pollSpacing * p1V;
@@ -472,7 +469,7 @@ public class WalkPointGroup
             {
                 hits = MathUtils.RaycastHitSortByY(hits, hitCount);
 
-                if (FindValidPoint(ref ret[2], hits, hitCount, minHeight, maxHeight, cylinders))
+                if (FindValidPoint(ref ret[2], hits, hitCount, averageHeight, cylinders))
                 {
                     ret[2].x += pollSpacing * p2H;
                     ret[2].z += pollSpacing * p2V;
@@ -492,7 +489,7 @@ public class WalkPointGroup
         }
     }
 
-    private bool FindValidPoint(ref Vector3 ret, RaycastHit[] hits, int hitCount, float minHeight, float maxHeight,  List<MathUtils.Cylinder> cylinders)
+    private bool FindValidPoint(ref Vector3 ret, RaycastHit[] hits, int hitCount, float averageHeight, List<MathUtils.Cylinder> cylinders)
     {
         List<Collider> blockerCollider = new List<Collider>();
 
@@ -521,7 +518,8 @@ public class WalkPointGroup
 
             if (valid)
             {
-                if (hit.point.y < minHeight - playerStepHeight || hit.point.y > maxHeight + playerStepHeight)
+                double minHeight = averageHeight - (playerStepHeight * walkPointConfiguration > 0 ? 0.2f : 0.9f);
+                if (hit.point.y < minHeight || hit.point.y > averageHeight + (playerStepHeight * 0.5f))
                 {
                     valid = false;
                 }
@@ -529,7 +527,7 @@ public class WalkPointGroup
                 {
                     valid = false;
                 }
-                else
+                else if(walkPointConfiguration < 0)
                 {
                     if (cylinders != null)
                         foreach (MathUtils.Cylinder c in cylinders)

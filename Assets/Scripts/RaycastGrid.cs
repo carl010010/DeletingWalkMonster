@@ -54,7 +54,7 @@ public class RaycastGrid : MonoBehaviour
         if (walkGrid == null)
             walkGrid = new WalkGrid();
 
-            lineMaterial.SetPass(0);
+        lineMaterial.SetPass(0);
 
 
         // Draw lines
