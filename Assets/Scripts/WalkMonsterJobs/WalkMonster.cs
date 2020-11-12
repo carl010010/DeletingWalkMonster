@@ -126,10 +126,19 @@ public class WalkMonster : MonoBehaviour
         pollsJobHandle = pollsJob.Schedule(sideCount * sideCount, 64, raycastAllCommandJob);
     }
 
+    List<PointStruct> templist = new List<PointStruct>();
+
     private void LateUpdate()
     {
         pollsJobHandle.Complete();
 
+        templist.Clear();
+
+        PointStruct temp;
+        while(freePoints.TryDequeue(out temp))
+        {
+            templist.Add(temp);
+        }
 
         //raycastAllCommandJob.Complete();
 
@@ -158,22 +167,10 @@ public class WalkMonster : MonoBehaviour
 
         float spacing = (1f / (sideCount - 1)) * walkMonsterSize;
 
-        if (hits != null && hits.Length > 0)
+
+        foreach(var p in templist)
         {
-            for (int x = 0; x < sideCount * sideCount; x++)
-            {
-                for (int i = 0; i < maxHits; i++)
-                {
-                    if (hits[x * maxHits + i].collider != null)
-                    {
-                        GL_Utils.DrawCrossVertical(hits[x * maxHits + i].point + offset, Color.white);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
+            GL_Utils.DrawCrossVertical(p.point + offset, Color.white, 20);
         }
 
         GL.End();
@@ -234,9 +231,10 @@ public class WalkMonster : MonoBehaviour
         //}
     }
 
-
+    [BurstCompile]
     private struct GeneratePolls : IJobParallelFor
     {
+        [NativeDisableParallelForRestriction]
         public NativeArray<RaycastHit> hits;
         [WriteOnly]
         public NativeQueue<PointStruct>.ParallelWriter freePoints;
