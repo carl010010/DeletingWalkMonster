@@ -5,6 +5,8 @@ using UnityEngine;
 
 public static class GL_Utils
 {
+    public readonly static Vector3 offset = new Vector3(0, 0.01f, 0);
+
     public static Material CreateLineMaterial()
     {
         Material lineMaterial;
@@ -43,7 +45,7 @@ public static class GL_Utils
         var p3 = new Vector3(size / 2, 0, size / 2);
 
 
-        if (normal != Vector3.up)
+        if (normal != Vector3.up && normal != default)
         {
             // Matrix magic
             Quaternion YY = Quaternion.FromToRotation(Vector3.forward, Vector3.up);

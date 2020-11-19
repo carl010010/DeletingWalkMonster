@@ -184,6 +184,8 @@ namespace test
             List<Collider> blockerCollider = new List<Collider>();
             int hitCount = hits.Length;
 
+            //TODO wrong loop should work backwards.
+            //For Blockers to work, you must work from  Highest to lowest point
             for (int h = 0; h < hitCount; h++)
             {
                 bool valid = true;

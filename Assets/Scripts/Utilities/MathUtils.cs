@@ -3,21 +3,20 @@ using UnityEngine;
 
 public class MathUtils
 {
-    public static NativeArray<RaycastHit> RaycastHitSortByY(ref NativeArray<RaycastHit> hits, int startIndex, int maxHits)
+	public static void RaycastHitSortByY(ref NativeArray<RaycastHit> hits, int startIndex, int maxHits)
     {
 		RaycastHit temp;
 		int j;
 
-		for (int i = startIndex + 1; i < startIndex + maxHits && hits[i].point != default; i++)
+		for (int i = startIndex + 1; i < startIndex + maxHits && hits[i].normal != default; i++)
 		{
 			temp = hits[i];
-			for (j = i; j > 0 && temp.point.y < hits[j - 1].point.y; j--)
+			for (j = i; j > startIndex && temp.point.y < hits[j - 1].point.y; j--)
 			{
 				hits[j] = hits[j - 1];
 			}
 			hits[j] = temp;
 		}
-		return hits;
     }
 
 	public static RaycastHit[] RaycastHitSortByY(RaycastHit[] hits, int count)

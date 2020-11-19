@@ -7,6 +7,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 using RaycastJobs;
+using UnityEditor;
 
 [ExecuteAlways]
 public class WalkMonster : MonoBehaviour
@@ -27,19 +28,17 @@ public class WalkMonster : MonoBehaviour
     static public bool _DisplayCylinders = false;
     public bool DisplayCylinders = false;
 
+    NativeMultiHashMap<int, RaycastHit> pollsRaycastHits;
+    NativeMultiHashMap<int, float> pollsFreePoints;
+    NativeMultiHashMap<int, float> pollsBlockedPoints;
+    NativeArray<Vector3> pollPositions;
 
-    NativeQueue<PointStruct> freePoints;
-    NativeQueue<PointStruct> blockedPoints;
-
-
-    //NativeArray<PointStruct> polls;
-    JobHandle pollsJobHandle;
-    GeneratePolls pollsJob;
+    JobHandle pointsJobHandle;
+    GeneratePointsJob pointsJob;
     RaycastAllCommand raycastAllCommand;
     NativeArray<RaycastCommand> raycasts;
 
     NativeArray<RaycastHit> hits;
-    JobHandle raycastAllCommandJob;
 
     const int maxHits = 10;
     const int maxHeight = 255;
@@ -49,24 +48,22 @@ public class WalkMonster : MonoBehaviour
     {
         // must be called before trying to draw lines..
         lineMaterial = GL_Utils.CreateLineMaterial();
-        //polls = new NativeArray<PointStruct>(sideCount * sideCount, Allocator.Persistent);
+        SetUpdateData();
     }
 
-    private void OnDestroy()
+    void OnEnable()
     {
-        //polls.Dispose();
-        if (hits != null && hits.IsCreated)
-        {
-            hits.Dispose();
-        }
+        //Debug.Log("OnEnable!!");
+        // must be called before trying to draw lines..
+        lineMaterial = GL_Utils.CreateLineMaterial();
+
+        SetUpdateData();
     }
 
     private void OnDisable()
     {
-        if (hits != null && hits.IsCreated)
-        {
-            hits.Dispose();
-        }
+        DisposeAllPersistentData();
+
     }
 
     // Update is called once per frame
@@ -77,18 +74,28 @@ public class WalkMonster : MonoBehaviour
 
 
 
-        if (hits == null || !hits.IsCreated)
+        //if (hits == null || !hits.IsCreated)
+        //{
+        //    hits = new NativeArray<RaycastHit>(sideCount * sideCount * maxHits, Allocator.Persistent);
+        //}
+
+        if (hits.Length != sideCount * sideCount * maxHits
+                        || !hits.IsCreated
+                        || !pollsRaycastHits.IsCreated
+                        || !pollsFreePoints.IsCreated
+                        || !pollsBlockedPoints.IsCreated
+                        || !pollPositions.IsCreated
+                        || !raycasts.IsCreated)
         {
-            hits = new NativeArray<RaycastHit>(sideCount * sideCount * maxHits, Allocator.Persistent);
+
+            DisposeAllPersistentData();
+            SetUpdateData();
+            return;
         }
 
-        if (hits.Length != sideCount * sideCount * maxHits)
-        {
-            hits.Dispose();
-            hits = new NativeArray<RaycastHit>(sideCount * sideCount * maxHits, Allocator.Persistent);
-        }
-
-        raycasts = new NativeArray<RaycastCommand>(sideCount * sideCount, Allocator.TempJob);
+        pollsRaycastHits.Clear();
+        pollsFreePoints.Clear();
+        pollsBlockedPoints.Clear();
 
         float spacing = (1f / (sideCount - 1)) * walkMonsterSize;
 
@@ -97,60 +104,57 @@ public class WalkMonster : MonoBehaviour
             for (int x = 0; x < sideCount; x++)
             {
                 Vector3 point = transform.position + new Vector3(0 - (walkMonsterSize / 2) + x * spacing, 0, 0 - (walkMonsterSize / 2) + y * spacing);
-                raycasts[y * sideCount + x] = new RaycastCommand(point, Vector3.down, 255);
+                point.y = maxHeight;
+                raycasts[y * sideCount + x] = new RaycastCommand(point, Vector3.down);
             }
         }
 
         raycastAllCommand = new RaycastAllCommand(raycasts, hits, maxHits);
-        raycastAllCommandJob = raycastAllCommand.Schedule(default(JobHandle));
+        JobHandle raycastAllCommandJob = raycastAllCommand.Schedule(default);
 
-        // Wait for the batch processing job to complete
-        //handle.Complete();
-        
-
-        freePoints = new NativeQueue<PointStruct>(Allocator.TempJob);
-        blockedPoints = new NativeQueue<PointStruct>(Allocator.TempJob);
-
-        pollsJob = new GeneratePolls()
+        raycastAllCommandJob.Complete();
+        JobHandle Fill = new FillRaycastHitHashMaps()
         {
-            freePoints = freePoints.AsParallelWriter(),
-            blockedPoints = blockedPoints.AsParallelWriter(),
             hits = hits,
+            maxHits = maxHits,
+            pollsRaycastHits = pollsRaycastHits.AsParallelWriter()
+        }.Schedule(sideCount * sideCount, 64, raycastAllCommandJob);
+
+
+        Fill.Complete();
+
+        pointsJob = new GeneratePointsJob()
+        {
+            pollsRaycastHits = pollsRaycastHits,
+            pollsFreePoints = pollsFreePoints.AsParallelWriter(),
+            pollsBlockedPoints = pollsBlockedPoints.AsParallelWriter(),
+            pollPositions = pollPositions,
             walkMonsterSize = walkMonsterSize,
             sideCount = sideCount,
             playerHeight = playerHeight,
             stepHeight = stepHeight,
-            playerRadius = playerRadius
+            playerRadius = playerRadius,
+            pos = transform.position,
+            spacing = spacing,
+            maxHits = maxHits
         };
 
-        pollsJobHandle = pollsJob.Schedule(sideCount * sideCount, 64, raycastAllCommandJob);
-    }
+        pointsJobHandle = pointsJob.Schedule(sideCount * sideCount, 64, Fill);
 
-    List<PointStruct> templist = new List<PointStruct>();
+        
+     }
 
     private void LateUpdate()
     {
-        pollsJobHandle.Complete();
+        //pointsJobHandle.Complete();
 
-        templist.Clear();
+        pointsJobHandle.Complete();
 
-        PointStruct temp;
-        while(freePoints.TryDequeue(out temp))
-        {
-            templist.Add(temp);
-        }
+        
 
-        //raycastAllCommandJob.Complete();
 
         raycastAllCommand.Dispose();
-        raycasts.Dispose();
-        freePoints.Dispose();
-        blockedPoints.Dispose();
     }
-
-
-    Vector3 offset = new Vector3(0, 0.01f, 0);
-
 
     void OnRenderObject()
     {
@@ -162,163 +166,78 @@ public class WalkMonster : MonoBehaviour
         lineMaterial.SetPass(0);
 
         GL.Begin(GL.LINES);
-        DisplayGrid();
 
 
-        float spacing = (1f / (sideCount - 1)) * walkMonsterSize;
-
-
-        foreach(var p in templist)
+        for(int i = 0; i < sideCount * sideCount; i++)
         {
-            GL_Utils.DrawCrossVertical(p.point + offset, Color.white, 20);
+            if(pollsFreePoints.TryGetFirstValue(i, out float f, out NativeMultiHashMapIterator<int> it))
+            {
+                do
+                {
+                    GL_Utils.DrawCrossVertical(pollPositions[i] + Vector3.up * f + GL_Utils.offset, Color.white);
+                }
+                while (pollsFreePoints.TryGetNextValue(out f, ref it));
+            }
         }
+
+        for (int i = 0; i < sideCount * sideCount; i++)
+        {
+            if (pollsBlockedPoints.TryGetFirstValue(i, out float f, out NativeMultiHashMapIterator<int> it))
+            {
+                do
+                {
+                    GL_Utils.DrawCrossVertical(pollPositions[i] + Vector3.up * f + GL_Utils.offset, Color.red);
+                }
+                while (pollsBlockedPoints.TryGetNextValue(out f, ref it));
+            }
+        }
+
+        //foreach (var p in )
+        //{
+        //    GL_Utils.DrawCrossVertical(p.point + GL_Utils.offset, Color.white);
+        //}
+
+        //foreach (var p in blockedPointlist)
+        //{
+        //    GL_Utils.DrawCrossVertical(p.point + GL_Utils.offset, Color.red);
+        //}
 
         GL.End();
         GL.PopMatrix();
     }
 
-    public void DisplayGrid()
+
+    private void SetUpdateData()
     {
+        int size = sideCount * sideCount * maxHits;
 
 
-        //if (DisplayVaildPoints || DisplayBlockedPoints)
-        //{
-        //    foreach (var p in polls)
-        //    {
-        //        Vector3 point = p.postition;
-        //        if (DisplayVaildPoints)
-        //            foreach (var f in p.yHeights)
-        //            {
-        //                point.y = f;
-        //                GL_Utils.DrawCrossVertical(point, Color.white);
-        //            }
-
-        //        if (DisplayBlockedPoints)
-        //            foreach (var f in p.yBlockedHeights)
-        //            {
-        //                point.y = f;
-        //                GL_Utils.DrawCrossVertical(point, Color.red);
-        //            }
-        //    }
-        //}
-
-        //if (DisplayWalkPoints || DisplayFreeWalkPointEdges || DisplayBlockedWalkPointEdges)
-        //{
-        //    foreach (WalkCellStruct w in walkCells)
-        //    {
-        //        foreach (WalkPointGroupStruct walkPoint in w.walkGroups)
-        //        {
-        //            //if (walkPoint.points.Length == 0)
-        //            //    continue;
-        //            //if (DisplayWalkPoints)
-        //            //    for (int i = 0; i < walkPoint.points.Length - 1; i++)
-        //            //    {
-        //            //        GL_Utils.DrawLine(walkPoint.points[i] + offset, walkPoint.points[i + 1] + offset, Color.white);
-        //            //    }
-
-        //            //if (walkPoint.walkEdgePoints != null)
-        //            //{
-        //            //    if (DisplayFreeWalkPointEdges && walkPoint.walkPointConfiguration > 0 || DisplayBlockedWalkPointEdges && walkPoint.walkPointConfiguration < 0)
-        //            //        for (int i = 0; i < walkPoint.walkEdgePoints.Length - 1; i++)
-        //            //        {
-        //            //            Color walkEdgeColor = (walkPoint.walkPointConfiguration > 0) ? Color.green : Color.red;
-
-        //            //            GL_Utils.DrawLine(walkPoint.walkEdgePoints[i] + offset, walkPoint.walkEdgePoints[i + 1] + offset, walkEdgeColor);
-        //            //        }
-        //            //}
-        //        }
-        //    }
-        //}
+        hits = new NativeArray<RaycastHit>(size, Allocator.Persistent);
+        pollsRaycastHits = new NativeMultiHashMap<int, RaycastHit>(size, Allocator.Persistent);
+        pollsFreePoints = new NativeMultiHashMap<int, float>(size, Allocator.Persistent);
+        pollsBlockedPoints = new NativeMultiHashMap<int, float>(size, Allocator.Persistent);
+        pollPositions = new NativeArray<Vector3>(sideCount * sideCount, Allocator.Persistent);
+        raycasts = new NativeArray<RaycastCommand>(sideCount * sideCount, Allocator.Persistent);
     }
 
-    [BurstCompile]
-    private struct GeneratePolls : IJobParallelFor
+    private void DisposeAllPersistentData()
     {
-        [NativeDisableParallelForRestriction]
-        public NativeArray<RaycastHit> hits;
-        [WriteOnly]
-        public NativeQueue<PointStruct>.ParallelWriter freePoints;
-        [WriteOnly]
-        public NativeQueue<PointStruct>.ParallelWriter blockedPoints;
+        if (hits.IsCreated)
+            hits.Dispose();
 
-        public float walkMonsterSize;
-        public int sideCount;
-        public float playerHeight;
-        public float stepHeight;
-        public float playerRadius;
+        if (pollsRaycastHits.IsCreated)
+            pollsRaycastHits.Dispose();
 
-        public Vector3 pos;
+        if (pollsFreePoints.IsCreated)
+            pollsFreePoints.Dispose();
 
-        public void Execute(int index)
-        {
-            pos.y = maxHeight;
+        if (pollsBlockedPoints.IsCreated)
+            pollsBlockedPoints.Dispose();
 
-            int y = index / sideCount;
-            int x = index % sideCount;
+        if (pollPositions.IsCreated)
+            pollPositions.Dispose();
 
-            float spacing = (1f / (sideCount - 1)) * walkMonsterSize;
-
-            
-            Vector3 point = pos + new Vector3(0 - (walkMonsterSize / 2) + x * spacing, 0, 0 - (walkMonsterSize / 2) + y * spacing);
-
-            //Calculate index
-            hits = MathUtils.RaycastHitSortByY(ref hits, index * maxHits, maxHits);
-
-            List<float> vPoints = new List<float>();
-            List<float> bPoints = new List<float>();
-
-            FindValidPoints(ref vPoints, ref bPoints, hits, index * maxHits, maxHits);
-            RemoveCloseValues(ref vPoints, ref bPoints, stepHeight * 0.9f);
-
-            foreach (var p in vPoints)
-            {
-                freePoints.Enqueue(new PointStruct(point + Vector3.up * p, index));
-            }
-
-            foreach (var p in bPoints)
-            {
-                blockedPoints.Enqueue(new PointStruct(point + Vector3.up * p, index));
-            } 
-        }
-
-
-        private void FindValidPoints(ref List<float> validPoints, ref List<float> blockedPoints, NativeArray<RaycastHit> hits, int startIndex, int maxHits)
-        {
-            for (int i = startIndex; i < startIndex + maxHits && hits[i].point != default; i++)
-            {
-                RaycastHit hit = hits[i];
-
-                if (i != startIndex + maxHits - 1 && hits[i + 1].point != default && hit.point.y + playerHeight > hits[i + 1].point.y)
-                {
-                    blockedPoints.Add(hit.point.y);
-                    continue;
-                }
-
-                validPoints.Add(hit.point.y);
-            }
-        }
-
-        private void RemoveCloseValues(ref List<float> validPoints, ref List<float> blockedPoints, float v)
-        {
-            //throw new NotImplementedException();
-        }
+        if (raycasts.IsCreated)
+            raycasts.Dispose();
     }
-
-    //private struct GenerateWalkCells : IJobParallelFor
-    //{
-    //    public NativeArray<PointStruct> polls;
-    //    public NativeArray<WalkCellStruct> walkCells;
-
-    //    public float walkMonsterSize;
-    //    public int sideCount;
-    //    public float playerHeight;
-    //    public float stepHeight;
-    //    public float playerRadius;
-
-
-    //    public void Execute(int index)
-    //    {
-    //        throw new System.NotImplementedException();
-    //    }
-    //}
 }
